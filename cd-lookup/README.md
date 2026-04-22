@@ -1,3 +1,9 @@
+# Installation
+
+```
+composer install
+```
+
 # Usage:
 
 ```
@@ -43,4 +49,10 @@ Array
         )
 
 )
+```
+
+# Testing
+
+```
+vendor/bin/phpunit tests/
 ```
