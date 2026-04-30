@@ -1,5 +1,13 @@
 {
+    "name": "raul-chacon/cd-lookup",
+    "type": "wordpress-plugin",
+    "require": {
+        "php": "^8.0",
+        "composer/installers": "^2.0"
+    },
     "require-dev": {
-        "phpunit/phpunit": "^11"
+        "phpunit/phpunit": "^11",
+        "php-stubs/wordpress-stubs": "^6.0",
+        "wp-coding-standards/wpcs": "^3.0"
     }
 }
