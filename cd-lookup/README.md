@@ -7,7 +7,7 @@ composer install
 # Usage:
 
 ```
-$ php LookupDistrict.php "225 Baker St NW, Atlanta, GA 30313"
+$ php src/LookupDistrict.php "225 Baker St NW, Atlanta, GA 30313"
 Array
 (
     [senators] => Array

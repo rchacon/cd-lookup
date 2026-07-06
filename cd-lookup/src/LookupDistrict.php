@@ -19,14 +19,31 @@ if (!function_exists('fetch_html')) {
 if (!function_exists('get_token')) {
     function get_token(): string
     {
+        $cookie_jar = '/tmp/govtrack_cookies.txt';
+
         $ch = curl_init(URL_FOR_TOKEN);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_COOKIEJAR, '/tmp/govtrack_cookies.txt');
-        curl_exec($ch);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; cd-lookup-plugin)');
+        curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie_jar);
+        $result = curl_exec($ch);
+        $error = curl_error($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        if ($result === false) {
+            throw new RuntimeException("Failed to reach govtrack.us for CSRF token: {$error}");
+        }
+        if ($status < 200 || $status >= 300) {
+            throw new RuntimeException("govtrack.us returned HTTP {$status} while fetching CSRF token");
+        }
+        if (!file_exists($cookie_jar)) {
+            throw new RuntimeException("govtrack.us did not set any cookies (no cookie jar written)");
+        }
+
         $cookies = [];
-        foreach (file('/tmp/govtrack_cookies.txt') as $line) {
+        foreach (file($cookie_jar) as $line) {
             if (str_starts_with(trim($line), '#') || trim($line) === '') {
                 continue;
             }
@@ -34,6 +51,10 @@ if (!function_exists('get_token')) {
             if (count($parts) >= 7 && $parts[5] === 'csrftoken') {
                 $cookies['csrftoken'] = $parts[6];
             }
+        }
+
+        if (!isset($cookies['csrftoken'])) {
+            throw new RuntimeException("csrftoken cookie not found in govtrack.us response");
         }
 
         return $cookies['csrftoken'];
