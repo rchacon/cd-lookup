@@ -58,7 +58,8 @@
         if (!people.length) return '';
         const items = people.map(p =>
             `<li>
-                <a href="https://www.govtrack.us${p.profile_url}">${p.full_name}</a>
+                ${p.photo_url ? `<img src="https://www.govtrack.us${p.photo_url}" alt="${p.full_name}" width="100" height="100"><br>` : ''}
+                ${p.full_name}
                 &mdash; ${p.role}<br>
                 ${p.party} &bull; <a href="tel:${p.phone}">${p.phone}</a>
                 &bull; <a href="${p.website}">${p.website}</a>

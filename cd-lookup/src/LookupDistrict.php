@@ -104,7 +104,8 @@ if (!function_exists('get_district')) {
  * Parse a govtrack.us district page and return senators and representatives.
  *
  * Returns an array with keys 'senators' and 'representatives', each a list of
- * arrays with keys: full_name, role, party, phone, website, profile_url.
+ * arrays with keys: full_name, role, party, phone, website, profile_url, photo_url.
+ * photo_url is '' when govtrack has no headshot on file.
  */
 if (!function_exists('parse_reps')) {
     function parse_reps(string $html): array
@@ -132,6 +133,9 @@ if (!function_exists('parse_reps')) {
             $full_name = trim($name_tag->textContent);
             $profile_url = $name_tag->getAttribute('href');
 
+            $photo_tags = $xpath->query('.//div[contains(@class,"col-sm-3")]//img', $row);
+            $photo_url = $photo_tags->length > 0 ? $photo_tags->item(0)->getAttribute('src') : '';
+
             $child_divs = $xpath->query('div', $info_div);
             $role = $child_divs->length > 1 ? trim($child_divs->item(1)->textContent) : '';
 
@@ -157,6 +161,7 @@ if (!function_exists('parse_reps')) {
                 'phone'       => $phone,
                 'website'     => $website,
                 'profile_url' => $profile_url,
+                'photo_url'   => $photo_url,
             ];
 
             if (str_contains($role, 'Senator')) {

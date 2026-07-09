@@ -87,6 +87,53 @@ class LookupDistrictTest extends TestCase
         $this->assertContains('/congress/members/adam_schiff/400361', $urls);
     }
 
+    public function test_parse_reps_senator_photo_urls(): void
+    {
+        $senators = parse_reps($this->html)['senators'];
+        $urls = array_column($senators, 'photo_url');
+        $this->assertContains('/static/legislator-photos/456856-100px.jpeg', $urls);
+        $this->assertContains('/static/legislator-photos/400361-100px.jpeg', $urls);
+    }
+
+    public function test_parse_reps_representative_photo_url_empty_without_headshot(): void
+    {
+        // The fixture's representative has only a placeholder div in place of an <img>.
+        $rep = parse_reps($this->html)['representatives'][0];
+        $this->assertSame('', $rep['photo_url']);
+    }
+
+    public function test_parse_reps_missing_photo_defaults_to_empty_string(): void
+    {
+        $html = '<html><body>
+            <div class="row" style="margin-bottom: 1.5em">
+                <div class="col-sm-3"><div style="border: 1px solid black"> </div></div>
+                <div class="col-sm-9">
+                    <a href="/profile" style="font-weight: bold">Jane Doe</a>
+                    <div></div>
+                    <div>Representative for Test District</div>
+                </div>
+            </div>
+        </body></html>';
+        $rep = parse_reps($html)['representatives'][0];
+        $this->assertSame('', $rep['photo_url']);
+    }
+
+    public function test_parse_reps_photo_url_from_col_sm_3_image(): void
+    {
+        $html = '<html><body>
+            <div class="row" style="margin-bottom: 1.5em">
+                <div class="col-sm-3"><img src="/static/legislator-photos/999-100px.jpeg" alt="Photo" /></div>
+                <div class="col-sm-9">
+                    <a href="/profile" style="font-weight: bold">Jane Doe</a>
+                    <div></div>
+                    <div>Representative for Test District</div>
+                </div>
+            </div>
+        </body></html>';
+        $rep = parse_reps($html)['representatives'][0];
+        $this->assertSame('/static/legislator-photos/999-100px.jpeg', $rep['photo_url']);
+    }
+
     public function test_parse_reps_row_without_info_div_is_skipped(): void
     {
         $html = '<html><body>
