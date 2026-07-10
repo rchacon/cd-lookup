@@ -1,4 +1,4 @@
-name: PHP Tests
+name: WordPress Plugin Tests
 
 on:
   pull_request:
