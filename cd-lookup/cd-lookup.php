@@ -39,7 +39,54 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
     [ $state, $district ] = get_district( $address, $token );
     $html = fetch_html( URL . "congress/members/{$state}/{$district}" );
 
-    return new WP_REST_Response( parse_reps( $html ), 200 );
+    return new WP_REST_Response( cd_lookup_sanitize_reps( parse_reps( $html ) ), 200 );
+}
+
+/**
+ * Sanitize scraped representative data before it reaches the browser.
+ *
+ * parse_reps() returns raw scraped text (also used by the CLI tool and its tests),
+ * so this is the boundary where that data becomes safe for the client-side
+ * renderer in templates/lookup-form.php to drop directly into innerHTML.
+ */
+function cd_lookup_sanitize_reps( array $reps ): array {
+    return [
+        'senators'        => array_map( 'cd_lookup_sanitize_person', $reps['senators'] ),
+        'representatives' => array_map( 'cd_lookup_sanitize_person', $reps['representatives'] ),
+    ];
+}
+
+function cd_lookup_sanitize_person( array $person ): array {
+    return [
+        'full_name'   => htmlspecialchars( $person['full_name'], ENT_QUOTES, 'UTF-8' ),
+        'role'        => htmlspecialchars( $person['role'], ENT_QUOTES, 'UTF-8' ),
+        'party'       => htmlspecialchars( $person['party'], ENT_QUOTES, 'UTF-8' ),
+        'phone'       => cd_lookup_sanitize_phone( $person['phone'] ),
+        'website'     => cd_lookup_sanitize_url( $person['website'] ),
+        'profile_url' => $person['profile_url'],
+        'photo_url'   => cd_lookup_sanitize_photo_path( $person['photo_url'] ),
+    ];
+}
+
+/** Strip everything but digits and common phone punctuation before it's used in a tel: link. */
+function cd_lookup_sanitize_phone( string $phone ): string {
+    return trim( preg_replace( '/[^0-9+\-() ]/', '', $phone ) );
+}
+
+/** Only allow http(s) URLs through, so scraped markup can't smuggle a javascript: URI into an href. */
+function cd_lookup_sanitize_url( string $url ): string {
+    if ( ! in_array( parse_url( $url, PHP_URL_SCHEME ), [ 'http', 'https' ], true ) ) {
+        return '';
+    }
+    return htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' );
+}
+
+/** Only allow a plain relative path through, so it's safe to concatenate onto the govtrack.us host. */
+function cd_lookup_sanitize_photo_path( string $path ): string {
+    if ( ! preg_match( '#^/[A-Za-z0-9/_.-]*$#', $path ) ) {
+        return '';
+    }
+    return htmlspecialchars( $path, ENT_QUOTES, 'UTF-8' );
 }
 
 add_shortcode( 'cd_lookup', function () {

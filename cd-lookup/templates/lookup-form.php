@@ -191,8 +191,8 @@
                     <p class="cdl-role">${p.role}</p>
                     <p class="cdl-meta">
                         <span class="cdl-party">${p.party}</span>
-                        <a href="tel:${p.phone}">${p.phone}</a>
-                        &bull; <a href="${p.website}">${p.website}</a>
+                        ${p.phone ? `<a href="tel:${p.phone}">${p.phone}</a>` : ''}
+                        ${p.website ? `&bull; <a href="${p.website}">${p.website}</a>` : ''}
                     </p>
                 </div>
             </li>`
