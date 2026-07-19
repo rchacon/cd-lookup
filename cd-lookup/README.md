@@ -7,7 +7,7 @@ composer install
 # Usage:
 
 ```
-$ php LookupDistrict.php "225 Baker St NW, Atlanta, GA 30313"
+$ php src/LookupDistrict.php "225 Baker St NW, Atlanta, GA 30313"
 Array
 (
     [senators] => Array
@@ -56,3 +56,17 @@ Array
 ```
 vendor/bin/phpunit tests/
 ```
+
+# Releasing
+
+1. Bump the `Version:` header in `cd-lookup.php`.
+2. Commit the version bump.
+3. Tag the commit and push the tag, e.g.:
+   ```
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+Pushing a `v*` tag triggers the `WordPress Plugin Release` GitHub Actions
+workflow (`.github/workflows/wp-release.yml`), which zips the plugin files
+and publishes a GitHub Release with the zip attached.

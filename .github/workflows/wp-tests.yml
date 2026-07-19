@@ -1,0 +1,25 @@
+name: WordPress Plugin Tests
+
+on:
+  pull_request:
+    paths:
+      - 'cd-lookup/**'
+
+jobs:
+  phpunit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      - name: Install dependencies
+        working-directory: cd-lookup
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run test suite
+        working-directory: cd-lookup
+        run: vendor/bin/phpunit tests/
