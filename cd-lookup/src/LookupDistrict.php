@@ -1,8 +1,17 @@
 <?php
 
 const URL = 'https://www.govtrack.us/';
-const URL_FOR_TOKEN = URL . '_twostream/user-head?path=/';
-const DISTRICT_ENDPOINT = URL . 'congress/members/lookup-district.json';
+const CENSUS_GEOCODER_ENDPOINT = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress';
+
+/** govtrack.us omits the district segment entirely for at-large ("0") districts, e.g. /congress/members/WY. */
+if (!function_exists('district_page_url')) {
+    function district_page_url(string $state, string $district): string
+    {
+        return $district === '0'
+            ? URL . "congress/members/{$state}"
+            : URL . "congress/members/{$state}/{$district}";
+    }
+}
 
 if (!function_exists('fetch_html')) {
     function fetch_html(string $url): string
@@ -27,16 +36,23 @@ if (!function_exists('fetch_html')) {
 }
 
 /**
- * Find the csrftoken value in a CURLINFO_COOKIELIST array (Netscape cookie
- * format, tab-separated: domain, flag, path, secure, expiration, name, value).
+ * Find the congressional district number in a Census geocoder `geographies`
+ * object. Both the layer name and its district field embed the Congress
+ * number (e.g. "119th Congressional Districts" / "CD119"), so match by
+ * pattern instead of a hardcoded Congress number that will go stale.
  */
-if (!function_exists('extract_csrf_token')) {
-    function extract_csrf_token(array $cookie_list): ?string
+if (!function_exists('extract_congressional_district')) {
+    function extract_congressional_district(array $geographies): ?string
     {
-        foreach ($cookie_list as $line) {
-            $parts = explode("\t", $line);
-            if (count($parts) >= 7 && $parts[5] === 'csrftoken') {
-                return $parts[6];
+        foreach ($geographies as $layer_name => $entries) {
+            if (!str_contains($layer_name, 'Congressional Districts') || empty($entries[0])) {
+                continue;
+            }
+
+            foreach ($entries[0] as $field => $value) {
+                if (preg_match('/^CD\d+$/', $field)) {
+                    return ltrim((string) $value, '0') ?: '0';
+                }
             }
         }
 
@@ -44,94 +60,47 @@ if (!function_exists('extract_csrf_token')) {
     }
 }
 
-/**
- * Fetch a CSRF token from govtrack.us required for authenticated POST requests.
- *
- * govtrack.us only sets its session cookie on the first hit; the csrftoken
- * cookie itself doesn't appear until a subsequent request comes back with
- * that session cookie. So a single call can legitimately come back without
- * a csrftoken yet — retry with the same cookie jar (read + write) so the
- * session cookie from the first attempt is sent on the second.
- */
-if (!function_exists('get_token')) {
-    function get_token(int $max_attempts = 2): string
-    {
-        // CURLOPT_COOKIEFILE = '' enables curl's cookie engine in memory only
-        // (no file read). Reusing one handle across attempts, rather than
-        // creating a new one per attempt, is what carries the session cookie
-        // from attempt 1 into attempt 2 — entirely in this request's process
-        // memory, so concurrent requests never share cookie state.
-        $ch = curl_init(URL_FOR_TOKEN);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; cd-lookup-plugin)');
-        curl_setopt($ch, CURLOPT_COOKIEFILE, '');
-
-        $errors = [];
-
-        try {
-            for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
-                $result = curl_exec($ch);
-                $error = curl_error($ch);
-                $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-
-                if ($result === false) {
-                    $errors[] = "attempt {$attempt}: failed to reach govtrack.us for CSRF token: {$error}";
-                    continue;
-                }
-                if ($status < 200 || $status >= 300) {
-                    $errors[] = "attempt {$attempt}: govtrack.us returned HTTP {$status} while fetching CSRF token";
-                    continue;
-                }
-
-                $token = extract_csrf_token(curl_getinfo($ch, CURLINFO_COOKIELIST));
-                if ($token !== null) {
-                    return $token;
-                }
-
-                $errors[] = "attempt {$attempt}: csrftoken cookie not found in govtrack.us response";
-            }
-
-            throw new RuntimeException(implode('; ', $errors) . " (after {$max_attempts} attempts)");
-        } finally {
-            curl_close($ch);
-        }
-    }
-}
-
 /** Return the congressional district state and number as an array for the given address. */
 if (!function_exists('get_district')) {
-    function get_district(string $address, string $token): array
+    function get_district(string $address): array
     {
-        $ch = curl_init(DISTRICT_ENDPOINT);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(['address' => $address]));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Referer: ' . URL,
-            'x-csrftoken: ' . $token,
+        $url = CENSUS_GEOCODER_ENDPOINT . '?' . http_build_query([
+            'address'   => $address,
+            'benchmark' => 'Public_AR_Current',
+            'vintage'   => 'Current_Current',
+            'format'    => 'json',
         ]);
-        curl_setopt($ch, CURLOPT_COOKIE, 'csrftoken=' . $token);
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         $response = curl_exec($ch);
         $error = curl_error($ch);
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($response === false) {
-            throw new RuntimeException("Failed to reach govtrack.us for district lookup: {$error}");
+            throw new RuntimeException("Failed to reach the Census geocoder for district lookup: {$error}");
         }
         if ($status < 200 || $status >= 300) {
-            throw new RuntimeException("govtrack.us returned HTTP {$status} while looking up district");
+            throw new RuntimeException("Census geocoder returned HTTP {$status} while looking up district");
         }
 
         $data = json_decode($response, true);
+        $match = $data['result']['addressMatches'][0] ?? null;
 
-        if (!isset($data['state'], $data['number'])) {
-            throw new RuntimeException('govtrack.us returned an unexpected response while looking up district');
+        if ($match === null) {
+            throw new RuntimeException("Census geocoder found no address match for \"{$address}\"");
         }
 
-        return [$data['state'], $data['number']];
+        $state = $match['addressComponents']['state'] ?? null;
+        $district = extract_congressional_district($match['geographies'] ?? []);
+
+        if ($state === null || $district === null) {
+            throw new RuntimeException('Census geocoder returned an unexpected response while looking up district');
+        }
+
+        return [$state, $district];
     }
 }
 
@@ -217,9 +186,8 @@ if (!function_exists('parse_reps')) {
 if (!function_exists('main')) {
     function main(string $address): void
     {
-        $token = get_token();
-        [$state, $district] = get_district($address, $token);
-        $html = fetch_html(URL . "congress/members/{$state}/{$district}");
+        [$state, $district] = get_district($address);
+        $html = fetch_html(district_page_url($state, $district));
         $reps = parse_reps($html);
         print_r($reps);
     }

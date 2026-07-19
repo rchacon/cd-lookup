@@ -22,14 +22,13 @@ php src/LookupDistrict.php "225 Baker St NW, Atlanta, GA 30313"
 
 ## Architecture
 
-This is a WordPress plugin that looks up U.S. congressional representatives by street address, scraping data from govtrack.us.
+This is a WordPress plugin that looks up U.S. congressional representatives by street address: the district number comes from the Census Bureau's geocoder, and the representative/senator details are scraped from govtrack.us.
 
 **Data flow:**
 1. User submits address via the `[cd_lookup]` shortcode form
 2. Inline JS POSTs to the WordPress REST endpoint `POST /wp-json/cd-lookup/v1/representatives`
 3. `cd-lookup.php` calls functions from `src/LookupDistrict.php`:
-   - `get_token()` — fetches a CSRF token from govtrack.us (stored in `/tmp/govtrack_cookies.txt`)
-   - `get_district($address, $token)` — POSTs to govtrack's district lookup API, returns `[$state, $district_number]`
+   - `get_district($address)` — calls the Census geocoder (`geocoding.geo.census.gov`) and returns `[$state, $district_number]`
    - `fetch_html($url)` — fetches the govtrack district page HTML via cURL
    - `parse_reps($html)` — parses the HTML with DOMDocument/XPath, returns `{ senators: [...], representatives: [...] }`
 4. Result is rendered in the browser by `renderResults()` in `templates/lookup-form.php`
@@ -41,4 +40,4 @@ This is a WordPress plugin that looks up U.S. congressional representatives by s
 - `tests/bootstrap.php` — WordPress stub functions and HTTP stub functions (overrides cURL-based functions before `LookupDistrict.php` loads, using PHP's `function_exists` guards)
 - `tests/data/12th_congressional_district.html` — HTML fixture used by tests
 
-**Testing approach:** Tests never hit the network. `bootstrap.php` defines stub implementations of `get_token`, `get_district`, and `fetch_html` before `LookupDistrict.php` is loaded; the `function_exists` guards in `LookupDistrict.php` cause the real cURL implementations to be skipped. The fixture file provides real govtrack HTML for `parse_reps` tests.
+**Testing approach:** Tests never hit the network. `bootstrap.php` defines stub implementations of `get_district` and `fetch_html` before `LookupDistrict.php` is loaded; the `function_exists` guards in `LookupDistrict.php` cause the real cURL implementations to be skipped. The fixture file provides real govtrack HTML for `parse_reps` tests.
