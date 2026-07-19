@@ -31,6 +31,22 @@ if (!function_exists('wp_create_nonce')) {
         return 'test_nonce';
     }
 }
+if (!defined('MINUTE_IN_SECONDS')) {
+    define('MINUTE_IN_SECONDS', 60);
+}
+if (!function_exists('get_transient')) {
+    function get_transient(string $key): mixed
+    {
+        return $GLOBALS['stub_transients'][$key] ?? false;
+    }
+}
+if (!function_exists('set_transient')) {
+    function set_transient(string $key, mixed $value, int $expiration = 0): bool
+    {
+        $GLOBALS['stub_transients'][$key] = $value;
+        return true;
+    }
+}
 
 // WordPress class stubs.
 if (!class_exists('WP_REST_Request')) {
@@ -67,6 +83,7 @@ if (!class_exists('WP_REST_Response')) {
 // function_exists guards there skip the real curl-based implementations.
 function get_token(): string
 {
+    $GLOBALS['stub_get_token_calls'] = ($GLOBALS['stub_get_token_calls'] ?? 0) + 1;
     if (!empty($GLOBALS['stub_get_token_throws'])) {
         throw new RuntimeException($GLOBALS['stub_get_token_throws']);
     }

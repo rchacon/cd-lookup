@@ -11,6 +11,8 @@ class CdLookupTest extends TestCase
         $GLOBALS['stub_get_district_args'] = null;
         $GLOBALS['stub_fetch_html_url'] = null;
         $GLOBALS['stub_get_token_throws'] = null;
+        $GLOBALS['stub_get_token_calls'] = 0;
+        $GLOBALS['stub_transients'] = [];
     }
 
     private function makeRequest(string $address): WP_REST_Request
@@ -81,5 +83,25 @@ class CdLookupTest extends TestCase
             'Failed to reach govtrack.us for CSRF token: timed out (after 2 attempts)',
             $data['message']
         );
+    }
+
+    public function test_second_request_reuses_cached_token_instead_of_calling_get_token_again(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        cd_lookup_get_representatives($this->makeRequest('456 Elm St'));
+        $this->assertSame(1, $GLOBALS['stub_get_token_calls']);
+    }
+
+    public function test_cached_token_is_still_passed_to_get_district(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        cd_lookup_get_representatives($this->makeRequest('456 Elm St'));
+        $this->assertSame('stub_token', $GLOBALS['stub_get_district_args']['token']);
+    }
+
+    public function test_no_cached_token_fetches_a_new_one(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(1, $GLOBALS['stub_get_token_calls']);
     }
 }

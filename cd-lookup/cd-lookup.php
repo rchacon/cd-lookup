@@ -32,11 +32,14 @@ add_action( 'rest_api_init', function () {
     ] );
 } );
 
+const CD_LOOKUP_TOKEN_TRANSIENT = 'cd_lookup_csrf_token';
+const CD_LOOKUP_TOKEN_TTL       = 5 * MINUTE_IN_SECONDS;
+
 function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Response {
     $address = $request->get_param( 'address' );
 
     try {
-        $token = get_token();
+        $token = cd_lookup_get_token();
         [ $state, $district ] = get_district( $address, $token );
         $html = fetch_html( URL . "congress/members/{$state}/{$district}" );
     } catch ( RuntimeException $e ) {
@@ -44,6 +47,20 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
     }
 
     return new WP_REST_Response( cd_lookup_sanitize_reps( parse_reps( $html ) ), 200 );
+}
+
+/** Reuse a cached CSRF token when we have one, to avoid a get_token() round trip on every request. */
+function cd_lookup_get_token(): string {
+    $cached_token = get_transient( CD_LOOKUP_TOKEN_TRANSIENT );
+
+    if ( is_string( $cached_token ) && $cached_token !== '' ) {
+        return $cached_token;
+    }
+
+    $token = get_token();
+    set_transient( CD_LOOKUP_TOKEN_TRANSIENT, $token, CD_LOOKUP_TOKEN_TTL );
+
+    return $token;
 }
 
 /**
