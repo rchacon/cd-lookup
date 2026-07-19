@@ -39,24 +39,40 @@ if (!function_exists('fetch_html')) {
  * Find the congressional district number in a Census geocoder `geographies`
  * object. Both the layer name and its district field embed the Congress
  * number (e.g. "119th Congressional Districts" / "CD119"), so match by
- * pattern instead of a hardcoded Congress number that will go stale.
+ * pattern instead of a hardcoded Congress number that will go stale — but
+ * require the field name to match the *same* layer's Congress number,
+ * rather than taking the first CD* field found, so a stray/legacy layer
+ * can't silently supply the wrong district. If multiple qualifying layers
+ * disagree on the district, that's an unresolvable ambiguity, not a guess.
  */
 if (!function_exists('extract_congressional_district')) {
     function extract_congressional_district(array $geographies): ?string
     {
+        $district = null;
+
         foreach ($geographies as $layer_name => $entries) {
             if (!str_contains($layer_name, 'Congressional Districts') || empty($entries[0])) {
                 continue;
             }
-
-            foreach ($entries[0] as $field => $value) {
-                if (preg_match('/^CD\d+$/', $field)) {
-                    return ltrim((string) $value, '0') ?: '0';
-                }
+            if (!preg_match('/^(\d+)/', $layer_name, $congress)) {
+                continue;
             }
+
+            $field = "CD{$congress[1]}";
+            if (!array_key_exists($field, $entries[0])) {
+                continue;
+            }
+
+            $found = ltrim((string) $entries[0][$field], '0') ?: '0';
+
+            if ($district !== null && $district !== $found) {
+                return null;
+            }
+
+            $district = $found;
         }
 
-        return null;
+        return $district;
     }
 }
 

@@ -266,6 +266,23 @@ class LookupDistrictTest extends TestCase
         $this->assertNull(extract_congressional_district([]));
     }
 
+    public function test_extract_congressional_district_ignores_field_from_a_different_congress(): void
+    {
+        $geographies = [
+            '119th Congressional Districts' => [['CD116' => '05']],
+        ];
+        $this->assertNull(extract_congressional_district($geographies));
+    }
+
+    public function test_extract_congressional_district_returns_null_when_layers_disagree(): void
+    {
+        $geographies = [
+            '119th Congressional Districts' => [['CD119' => '05']],
+            '119th Congressional Districts (legacy)' => [['CD119' => '07']],
+        ];
+        $this->assertNull(extract_congressional_district($geographies));
+    }
+
     public function test_district_page_url_includes_district_segment(): void
     {
         $this->assertSame(
