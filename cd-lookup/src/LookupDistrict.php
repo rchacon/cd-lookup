@@ -87,12 +87,16 @@ if (!function_exists('get_district')) {
         }
 
         $data = json_decode($response, true);
-        $match = $data['result']['addressMatches'][0] ?? null;
+        $matches = $data['result']['addressMatches'] ?? [];
 
-        if ($match === null) {
+        if (count($matches) === 0) {
             throw new RuntimeException("Census geocoder found no address match for \"{$address}\"");
         }
+        if (count($matches) > 1) {
+            throw new RuntimeException("Census geocoder found multiple possible matches for \"{$address}\"; please provide a more specific address");
+        }
 
+        $match = $matches[0];
         $state = $match['addressComponents']['state'] ?? null;
         $district = extract_congressional_district($match['geographies'] ?? []);
 
