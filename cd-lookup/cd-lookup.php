@@ -35,9 +35,13 @@ add_action( 'rest_api_init', function () {
 function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Response {
     $address = $request->get_param( 'address' );
 
-    $token = get_token();
-    [ $state, $district ] = get_district( $address, $token );
-    $html = fetch_html( URL . "congress/members/{$state}/{$district}" );
+    try {
+        $token = get_token();
+        [ $state, $district ] = get_district( $address, $token );
+        $html = fetch_html( URL . "congress/members/{$state}/{$district}" );
+    } catch ( RuntimeException $e ) {
+        return new WP_REST_Response( [ 'message' => $e->getMessage() ], 502 );
+    }
 
     return new WP_REST_Response( cd_lookup_sanitize_reps( parse_reps( $html ) ), 200 );
 }

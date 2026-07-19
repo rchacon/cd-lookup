@@ -67,6 +67,9 @@ if (!class_exists('WP_REST_Response')) {
 // function_exists guards there skip the real curl-based implementations.
 function get_token(): string
 {
+    if (!empty($GLOBALS['stub_get_token_throws'])) {
+        throw new RuntimeException($GLOBALS['stub_get_token_throws']);
+    }
     return 'stub_token';
 }
 
