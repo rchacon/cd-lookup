@@ -143,14 +143,18 @@
 
 <script>
 (function () {
+    // Scoped to this shortcode instance's own container, since WordPress allows
+    // [cd_lookup] to appear more than once on a page — document.getElementById()
+    // would always bind to the first instance's elements otherwise.
+    const container = document.currentScript.previousElementSibling;
     const endpoint = <?php echo wp_json_encode( rest_url( 'cd-lookup/v1/representatives' ) ); ?>;
     const nonce    = <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?>;
 
-    document.getElementById('cd-lookup-form').addEventListener('submit', async function (e) {
+    container.querySelector('#cd-lookup-form').addEventListener('submit', async function (e) {
         e.preventDefault();
 
-        const address = document.getElementById('cd-lookup-address').value.trim();
-        const results = document.getElementById('cd-lookup-results');
+        const address = container.querySelector('#cd-lookup-address').value.trim();
+        const results = container.querySelector('#cd-lookup-results');
 
         results.innerHTML = 'Loading&hellip;';
         results.hidden = false;
