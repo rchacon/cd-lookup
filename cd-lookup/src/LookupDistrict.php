@@ -9,8 +9,19 @@ if (!function_exists('fetch_html')) {
     {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
         $html = curl_exec($ch);
+        $error = curl_error($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        if ($html === false) {
+            throw new RuntimeException("Failed to reach govtrack.us for district page: {$error}");
+        }
+        if ($status < 200 || $status >= 300) {
+            throw new RuntimeException("govtrack.us returned HTTP {$status} while fetching district page");
+        }
+
         return $html;
     }
 }
