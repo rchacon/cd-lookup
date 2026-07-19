@@ -27,6 +27,24 @@ if (!function_exists('fetch_html')) {
 }
 
 /**
+ * Find the csrftoken value in a CURLINFO_COOKIELIST array (Netscape cookie
+ * format, tab-separated: domain, flag, path, secure, expiration, name, value).
+ */
+if (!function_exists('extract_csrf_token')) {
+    function extract_csrf_token(array $cookie_list): ?string
+    {
+        foreach ($cookie_list as $line) {
+            $parts = explode("\t", $line);
+            if (count($parts) >= 7 && $parts[5] === 'csrftoken') {
+                return $parts[6];
+            }
+        }
+
+        return null;
+    }
+}
+
+/**
  * Fetch a CSRF token from govtrack.us required for authenticated POST requests.
  *
  * govtrack.us only sets its session cookie on the first hit; the csrftoken
@@ -67,11 +85,9 @@ if (!function_exists('get_token')) {
                     continue;
                 }
 
-                foreach (curl_getinfo($ch, CURLINFO_COOKIELIST) as $line) {
-                    $parts = explode("\t", $line);
-                    if (count($parts) >= 7 && $parts[5] === 'csrftoken') {
-                        return $parts[6];
-                    }
+                $token = extract_csrf_token(curl_getinfo($ch, CURLINFO_COOKIELIST));
+                if ($token !== null) {
+                    return $token;
                 }
 
                 $last_error = "csrftoken cookie not found in govtrack.us response";

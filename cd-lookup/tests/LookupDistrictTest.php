@@ -219,4 +219,35 @@ class LookupDistrictTest extends TestCase
         $rep = parse_reps($html)['representatives'][0];
         $this->assertSame('', $rep['role']);
     }
+
+    public function test_extract_csrf_token_finds_token_among_other_cookies(): void
+    {
+        $cookie_list = [
+            "www.govtrack.us\tFALSE\t/\tFALSE\t0\tsessionid\tabc123",
+            "www.govtrack.us\tFALSE\t/\tFALSE\t0\tcsrftoken\txyz789",
+        ];
+        $this->assertSame('xyz789', extract_csrf_token($cookie_list));
+    }
+
+    public function test_extract_csrf_token_returns_null_when_absent(): void
+    {
+        $cookie_list = [
+            "www.govtrack.us\tFALSE\t/\tFALSE\t0\tsessionid\tabc123",
+        ];
+        $this->assertNull(extract_csrf_token($cookie_list));
+    }
+
+    public function test_extract_csrf_token_returns_null_for_empty_list(): void
+    {
+        $this->assertNull(extract_csrf_token([]));
+    }
+
+    public function test_extract_csrf_token_ignores_malformed_rows(): void
+    {
+        $cookie_list = [
+            'not-enough-fields',
+            "www.govtrack.us\tFALSE\t/\tFALSE\t0\tcsrftoken\treal-token",
+        ];
+        $this->assertSame('real-token', extract_csrf_token($cookie_list));
+    }
 }
