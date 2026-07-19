@@ -87,9 +87,22 @@ if (!function_exists('get_district')) {
         ]);
         curl_setopt($ch, CURLOPT_COOKIE, 'csrftoken=' . $token);
         $response = curl_exec($ch);
+        $error = curl_error($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
+        if ($response === false) {
+            throw new RuntimeException("Failed to reach govtrack.us for district lookup: {$error}");
+        }
+        if ($status < 200 || $status >= 300) {
+            throw new RuntimeException("govtrack.us returned HTTP {$status} while looking up district");
+        }
+
         $data = json_decode($response, true);
+
+        if (!isset($data['state'], $data['number'])) {
+            throw new RuntimeException('govtrack.us returned an unexpected response while looking up district');
+        }
 
         return [$data['state'], $data['number']];
     }
