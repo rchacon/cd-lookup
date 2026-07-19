@@ -103,7 +103,12 @@ if (!function_exists('get_district')) {
         }
 
         $data = json_decode($response, true);
-        $matches = $data['result']['addressMatches'] ?? [];
+
+        if (!is_array($data) || !isset($data['result']['addressMatches']) || !is_array($data['result']['addressMatches'])) {
+            throw new RuntimeException('Census geocoder returned an unexpected response while looking up district');
+        }
+
+        $matches = $data['result']['addressMatches'];
 
         if (count($matches) === 0) {
             throw new RuntimeException("Census geocoder found no address match for \"{$address}\"");
