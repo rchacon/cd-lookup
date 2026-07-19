@@ -68,7 +68,7 @@ if (!function_exists('get_token')) {
         curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (compatible; cd-lookup-plugin)');
         curl_setopt($ch, CURLOPT_COOKIEFILE, '');
 
-        $last_error = '';
+        $errors = [];
 
         try {
             for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
@@ -77,11 +77,11 @@ if (!function_exists('get_token')) {
                 $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
                 if ($result === false) {
-                    $last_error = "Failed to reach govtrack.us for CSRF token: {$error}";
+                    $errors[] = "attempt {$attempt}: failed to reach govtrack.us for CSRF token: {$error}";
                     continue;
                 }
                 if ($status < 200 || $status >= 300) {
-                    $last_error = "govtrack.us returned HTTP {$status} while fetching CSRF token";
+                    $errors[] = "attempt {$attempt}: govtrack.us returned HTTP {$status} while fetching CSRF token";
                     continue;
                 }
 
@@ -90,10 +90,10 @@ if (!function_exists('get_token')) {
                     return $token;
                 }
 
-                $last_error = "csrftoken cookie not found in govtrack.us response";
+                $errors[] = "attempt {$attempt}: csrftoken cookie not found in govtrack.us response";
             }
 
-            throw new RuntimeException("{$last_error} (after {$max_attempts} attempts)");
+            throw new RuntimeException(implode('; ', $errors) . " (after {$max_attempts} attempts)");
         } finally {
             curl_close($ch);
         }
