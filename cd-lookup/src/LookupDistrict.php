@@ -3,6 +3,11 @@
 const URL = 'https://www.govtrack.us/';
 const CENSUS_GEOCODER_ENDPOINT = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress';
 
+/** A problem with the address itself (no match or too ambiguous to resolve) rather than a geocoder/network failure. */
+if (!class_exists('InvalidAddressException')) {
+    class InvalidAddressException extends RuntimeException {}
+}
+
 /** govtrack.us omits the district segment entirely for at-large ("0") districts, e.g. /congress/members/WY. */
 if (!function_exists('district_page_url')) {
     function district_page_url(string $state, string $district): string
@@ -111,10 +116,10 @@ if (!function_exists('get_district')) {
         $matches = $data['result']['addressMatches'];
 
         if (count($matches) === 0) {
-            throw new RuntimeException("Census geocoder found no address match for \"{$address}\"");
+            throw new InvalidAddressException("Census geocoder found no address match for \"{$address}\"");
         }
         if (count($matches) > 1) {
-            throw new RuntimeException("Census geocoder found multiple possible matches for \"{$address}\"; please provide a more specific address");
+            throw new InvalidAddressException("Census geocoder found multiple possible matches for \"{$address}\"; please provide a more specific address");
         }
 
         $match = $matches[0];

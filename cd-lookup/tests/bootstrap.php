@@ -70,6 +70,9 @@ function get_district(string $address): array
     if (!empty($GLOBALS['stub_get_district_throws'])) {
         throw new RuntimeException($GLOBALS['stub_get_district_throws']);
     }
+    if (!empty($GLOBALS['stub_get_district_throws_invalid_address'])) {
+        throw new InvalidAddressException($GLOBALS['stub_get_district_throws_invalid_address']);
+    }
     return $GLOBALS['stub_get_district_return'] ?? ['CA', '12'];
 }
 

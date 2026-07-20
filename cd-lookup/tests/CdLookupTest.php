@@ -10,6 +10,7 @@ class CdLookupTest extends TestCase
     {
         $GLOBALS['stub_get_district_args'] = null;
         $GLOBALS['stub_get_district_throws'] = null;
+        $GLOBALS['stub_get_district_throws_invalid_address'] = null;
         $GLOBALS['stub_get_district_return'] = null;
         $GLOBALS['stub_fetch_html_url'] = null;
     }
@@ -72,15 +73,33 @@ class CdLookupTest extends TestCase
 
     public function test_get_district_failure_returns_502_instead_of_throwing(): void
     {
-        $GLOBALS['stub_get_district_throws'] = 'Census geocoder found no address match for "not a real address"';
-        $result = cd_lookup_get_representatives($this->makeRequest('not a real address'));
+        $GLOBALS['stub_get_district_throws'] = 'Failed to reach the Census geocoder for district lookup: timed out';
+        $result = cd_lookup_get_representatives($this->makeRequest('123 Main St'));
         $this->assertInstanceOf(WP_REST_Response::class, $result);
         $this->assertSame(502, $result->get_status());
     }
 
     public function test_get_district_failure_response_includes_original_message(): void
     {
-        $GLOBALS['stub_get_district_throws'] = 'Census geocoder found no address match for "not a real address"';
+        $GLOBALS['stub_get_district_throws'] = 'Failed to reach the Census geocoder for district lookup: timed out';
+        $data = cd_lookup_get_representatives($this->makeRequest('123 Main St'))->get_data();
+        $this->assertSame(
+            'Failed to reach the Census geocoder for district lookup: timed out',
+            $data['message']
+        );
+    }
+
+    public function test_invalid_address_returns_422_instead_of_502(): void
+    {
+        $GLOBALS['stub_get_district_throws_invalid_address'] = 'Census geocoder found no address match for "not a real address"';
+        $result = cd_lookup_get_representatives($this->makeRequest('not a real address'));
+        $this->assertInstanceOf(WP_REST_Response::class, $result);
+        $this->assertSame(422, $result->get_status());
+    }
+
+    public function test_invalid_address_response_includes_original_message(): void
+    {
+        $GLOBALS['stub_get_district_throws_invalid_address'] = 'Census geocoder found no address match for "not a real address"';
         $data = cd_lookup_get_representatives($this->makeRequest('not a real address'))->get_data();
         $this->assertSame(
             'Census geocoder found no address match for "not a real address"',

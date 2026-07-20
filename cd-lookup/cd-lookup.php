@@ -38,6 +38,8 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
     try {
         [ $state, $district ] = get_district( $address );
         $html = fetch_html( district_page_url( $state, $district ) );
+    } catch ( InvalidAddressException $e ) {
+        return new WP_REST_Response( [ 'message' => $e->getMessage() ], 422 );
     } catch ( RuntimeException $e ) {
         return new WP_REST_Response( [ 'message' => $e->getMessage() ], 502 );
     }
