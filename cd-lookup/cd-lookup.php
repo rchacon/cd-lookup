@@ -32,11 +32,14 @@ add_action( 'rest_api_init', function () {
     ] );
 } );
 
+const CD_LOOKUP_DISTRICT_TRANSIENT_PREFIX = 'cd_lookup_district_';
+const CD_LOOKUP_DISTRICT_TTL              = DAY_IN_SECONDS;
+
 function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Response {
     $address = $request->get_param( 'address' );
 
     try {
-        [ $state, $district ] = get_district( $address );
+        [ $state, $district ] = cd_lookup_get_district( $address );
         $html = fetch_html( district_page_url( $state, $district ) );
     } catch ( InvalidAddressException $e ) {
         return new WP_REST_Response( [ 'message' => $e->getMessage() ], 422 );
@@ -45,6 +48,21 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
     }
 
     return new WP_REST_Response( cd_lookup_sanitize_reps( parse_reps( $html ) ), 200 );
+}
+
+/** Reuse a cached district lookup for this address, to avoid a Census geocoder round trip on every request. */
+function cd_lookup_get_district( string $address ): array {
+    $cache_key = CD_LOOKUP_DISTRICT_TRANSIENT_PREFIX . md5( $address );
+    $cached    = get_transient( $cache_key );
+
+    if ( is_array( $cached ) && isset( $cached[0], $cached[1] ) ) {
+        return $cached;
+    }
+
+    $result = get_district( $address );
+    set_transient( $cache_key, $result, CD_LOOKUP_DISTRICT_TTL );
+
+    return $result;
 }
 
 /**

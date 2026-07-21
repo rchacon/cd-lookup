@@ -9,10 +9,12 @@ class CdLookupTest extends TestCase
     protected function setUp(): void
     {
         $GLOBALS['stub_get_district_args'] = null;
+        $GLOBALS['stub_get_district_calls'] = 0;
         $GLOBALS['stub_get_district_throws'] = null;
         $GLOBALS['stub_get_district_throws_invalid_address'] = null;
         $GLOBALS['stub_get_district_return'] = null;
         $GLOBALS['stub_fetch_html_url'] = null;
+        $GLOBALS['stub_transients'] = [];
     }
 
     private function makeRequest(string $address): WP_REST_Request
@@ -105,5 +107,25 @@ class CdLookupTest extends TestCase
             'Census geocoder found no address match for "not a real address"',
             $data['message']
         );
+    }
+
+    public function test_second_request_for_same_address_reuses_cached_district(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(1, $GLOBALS['stub_get_district_calls']);
+    }
+
+    public function test_request_for_a_different_address_does_not_reuse_the_cache(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        cd_lookup_get_representatives($this->makeRequest('456 Elm St'));
+        $this->assertSame(2, $GLOBALS['stub_get_district_calls']);
+    }
+
+    public function test_no_cached_district_fetches_a_new_one(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(1, $GLOBALS['stub_get_district_calls']);
     }
 }
