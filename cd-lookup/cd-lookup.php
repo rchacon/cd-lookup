@@ -53,7 +53,14 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
     return new WP_REST_Response( cd_lookup_sanitize_reps( parse_reps( $html ) ), 200 );
 }
 
-/** Reuse a cached district lookup for this address, to avoid a Census geocoder round trip on every request. */
+/**
+ * Reuse a cached district lookup for this address, to avoid a Census geocoder round trip on every request.
+ *
+ * Cache entries are keyed per address with no cap on distinct entries, so an
+ * anonymous caller could grow wp_options by submitting many distinct
+ * addresses; accepted as a low risk for this plugin's traffic level rather
+ * than adding rate limiting or an entry cap. The 1 day TTL is the only bound.
+ */
 function cd_lookup_get_district( string $address ): array {
     $cache_key = CD_LOOKUP_DISTRICT_TRANSIENT_PREFIX . md5( $address );
     $cached    = get_transient( $cache_key );
