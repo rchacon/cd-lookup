@@ -78,7 +78,7 @@ if (!function_exists('extract_congressional_district')) {
                 continue;
             }
 
-            $found = ltrim((string) $entries[0][$field], '0') ?: '0';
+            $found = (string) (int) $entries[0][$field];
 
             if ($district !== null && $district !== $found) {
                 return null;
