@@ -59,6 +59,8 @@ if (!function_exists('fetch_html')) {
  * rather than taking the first CD* field found, so a stray/legacy layer
  * can't silently supply the wrong district. If multiple qualifying layers
  * disagree on the district, that's an unresolvable ambiguity, not a guess.
+ * A non-numeric CD value is also treated as unresolvable rather than cast
+ * to 0, so a malformed response can't masquerade as an at-large district.
  */
 if (!function_exists('extract_congressional_district')) {
     function extract_congressional_district(array $geographies): ?string
@@ -76,6 +78,9 @@ if (!function_exists('extract_congressional_district')) {
             $field = "CD{$congress[1]}";
             if (!array_key_exists($field, $entries[0])) {
                 continue;
+            }
+            if (!is_numeric($entries[0][$field])) {
+                return null;
             }
 
             $found = (string) (int) $entries[0][$field];
