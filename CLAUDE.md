@@ -27,7 +27,7 @@ This is a WordPress plugin that looks up U.S. congressional representatives by s
 **Data flow:**
 1. User submits address via the `[cd_lookup]` shortcode form
 2. Inline JS POSTs to the WordPress REST endpoint `POST /wp-json/cd-lookup/v1/representatives`
-3. `cd-lookup.php` resolves the district via its own `cd_lookup_get_district($address)`, which caches the result per address (WP transient, 1 day TTL) and otherwise delegates to `get_district()`. It also calls these other functions from `src/LookupDistrict.php`:
+3. `cd-lookup.php` resolves the district via its own `cd_lookup_get_district($address)` (caches the result per address, WP transient, 1 day TTL) and fetches the district page via its own `cd_lookup_fetch_html($url)` (caches per URL, 1 hour TTL); both otherwise delegate to `src/LookupDistrict.php`:
    - `get_district($address)` — calls the Census geocoder (`geocoding.geo.census.gov`) and returns `[$state, $district_number]`
    - `district_page_url($state, $district)` — builds the govtrack district page URL, omitting the district segment for at-large ("0") districts
    - `fetch_html($url)` — fetches the govtrack district page HTML via cURL

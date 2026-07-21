@@ -14,6 +14,7 @@ class CdLookupTest extends TestCase
         $GLOBALS['stub_get_district_throws_invalid_address'] = null;
         $GLOBALS['stub_get_district_return'] = null;
         $GLOBALS['stub_fetch_html_url'] = null;
+        $GLOBALS['stub_fetch_html_calls'] = 0;
         $GLOBALS['stub_transients'] = [];
     }
 
@@ -127,5 +128,26 @@ class CdLookupTest extends TestCase
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
         $this->assertSame(1, $GLOBALS['stub_get_district_calls']);
+    }
+
+    public function test_second_request_for_same_district_reuses_cached_html(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(1, $GLOBALS['stub_fetch_html_calls']);
+    }
+
+    public function test_request_for_a_different_district_does_not_reuse_the_html_cache(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $GLOBALS['stub_get_district_return'] = ['WY', '0'];
+        cd_lookup_get_representatives($this->makeRequest('200 W 24th St, Cheyenne, WY 82002'));
+        $this->assertSame(2, $GLOBALS['stub_fetch_html_calls']);
+    }
+
+    public function test_no_cached_html_fetches_a_new_one(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(1, $GLOBALS['stub_fetch_html_calls']);
     }
 }

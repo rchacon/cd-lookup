@@ -35,12 +35,15 @@ add_action( 'rest_api_init', function () {
 const CD_LOOKUP_DISTRICT_TRANSIENT_PREFIX = 'cd_lookup_district_';
 const CD_LOOKUP_DISTRICT_TTL              = DAY_IN_SECONDS;
 
+const CD_LOOKUP_HTML_TRANSIENT_PREFIX = 'cd_lookup_html_';
+const CD_LOOKUP_HTML_TTL              = HOUR_IN_SECONDS;
+
 function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Response {
     $address = $request->get_param( 'address' );
 
     try {
         [ $state, $district ] = cd_lookup_get_district( $address );
-        $html = fetch_html( district_page_url( $state, $district ) );
+        $html = cd_lookup_fetch_html( district_page_url( $state, $district ) );
     } catch ( InvalidAddressException $e ) {
         return new WP_REST_Response( [ 'message' => $e->getMessage() ], 422 );
     } catch ( RuntimeException $e ) {
@@ -63,6 +66,26 @@ function cd_lookup_get_district( string $address ): array {
     set_transient( $cache_key, $result, CD_LOOKUP_DISTRICT_TTL );
 
     return $result;
+}
+
+/**
+ * Reuse a cached district page fetch for this URL, to avoid a govtrack.us
+ * round trip on every request. Shorter TTL than the district cache since
+ * a district's roster of representatives can change (resignation, special
+ * election) far more often than its boundaries do.
+ */
+function cd_lookup_fetch_html( string $url ): string {
+    $cache_key = CD_LOOKUP_HTML_TRANSIENT_PREFIX . md5( $url );
+    $cached    = get_transient( $cache_key );
+
+    if ( is_string( $cached ) && $cached !== '' ) {
+        return $cached;
+    }
+
+    $html = fetch_html( $url );
+    set_transient( $cache_key, $html, CD_LOOKUP_HTML_TTL );
+
+    return $html;
 }
 
 /**

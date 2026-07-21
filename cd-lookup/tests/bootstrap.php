@@ -34,6 +34,9 @@ if (!function_exists('wp_create_nonce')) {
 if (!defined('DAY_IN_SECONDS')) {
     define('DAY_IN_SECONDS', 24 * 60 * 60);
 }
+if (!defined('HOUR_IN_SECONDS')) {
+    define('HOUR_IN_SECONDS', 60 * 60);
+}
 if (!function_exists('get_transient')) {
     function get_transient(string $key): mixed
     {
@@ -95,6 +98,7 @@ function get_district(string $address): array
 
 function fetch_html(string $url): string
 {
+    $GLOBALS['stub_fetch_html_calls'] = ($GLOBALS['stub_fetch_html_calls'] ?? 0) + 1;
     $GLOBALS['stub_fetch_html_url'] = $url;
     return file_get_contents(__DIR__ . '/data/12th_congressional_district.html');
 }
