@@ -128,7 +128,8 @@ if (!function_exists('get_district')) {
 
         $match = $matches[0];
         $state = $match['addressComponents']['state'] ?? null;
-        $district = extract_congressional_district($match['geographies'] ?? []);
+        $geographies = $match['geographies'] ?? null;
+        $district = extract_congressional_district(is_array($geographies) ? $geographies : []);
 
         if ($state === null) {
             throw new RuntimeException('Census geocoder response was missing addressComponents.state while looking up district');
