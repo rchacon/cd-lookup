@@ -45,6 +45,9 @@ if (!function_exists('fetch_html')) {
         if ($status < 200 || $status >= 300) {
             throw new RuntimeException("govtrack.us returned HTTP {$status} while fetching district page");
         }
+        if (trim($html) === '') {
+            throw new RuntimeException('govtrack.us returned an empty response while fetching district page');
+        }
 
         return $html;
     }
