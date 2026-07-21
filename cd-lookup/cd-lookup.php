@@ -62,7 +62,7 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
  * than adding rate limiting or an entry cap. The 1 day TTL is the only bound.
  */
 function cd_lookup_get_district( string $address ): array {
-    $cache_key = CD_LOOKUP_DISTRICT_TRANSIENT_PREFIX . md5( $address );
+    $cache_key = CD_LOOKUP_DISTRICT_TRANSIENT_PREFIX . md5( cd_lookup_normalize_address_for_cache_key( $address ) );
     $cached    = get_transient( $cache_key );
 
     if ( is_array( $cached ) && isset( $cached[0], $cached[1] ) ) {
@@ -73,6 +73,17 @@ function cd_lookup_get_district( string $address ): array {
     set_transient( $cache_key, $result, CD_LOOKUP_DISTRICT_TTL );
 
     return $result;
+}
+
+/**
+ * Collapse trivial formatting differences (case, surrounding/repeated
+ * whitespace) before hashing an address into a cache key, so "123 Main St"
+ * and "123  main st" share a cache entry instead of each causing their own
+ * live Census geocoder call. Only used for the cache key — the original
+ * $address is still what's sent to the geocoder.
+ */
+function cd_lookup_normalize_address_for_cache_key( string $address ): string {
+    return strtolower( preg_replace( '/\s+/', ' ', trim( $address ) ) );
 }
 
 /**

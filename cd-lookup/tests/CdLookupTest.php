@@ -130,6 +130,13 @@ class CdLookupTest extends TestCase
         $this->assertSame(1, $GLOBALS['stub_get_district_calls']);
     }
 
+    public function test_differently_cased_or_spaced_address_reuses_the_cache(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        cd_lookup_get_representatives($this->makeRequest('  123  main st  '));
+        $this->assertSame(1, $GLOBALS['stub_get_district_calls']);
+    }
+
     public function test_second_request_for_same_district_reuses_cached_html(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
