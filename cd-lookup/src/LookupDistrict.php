@@ -8,6 +8,16 @@ if (!class_exists('InvalidAddressException')) {
     class InvalidAddressException extends RuntimeException {}
 }
 
+/** The address didn't match any known location. */
+if (!class_exists('NoAddressMatchException')) {
+    class NoAddressMatchException extends InvalidAddressException {}
+}
+
+/** The address matched more than one candidate location; the caller should ask for a more specific address. */
+if (!class_exists('AmbiguousAddressException')) {
+    class AmbiguousAddressException extends InvalidAddressException {}
+}
+
 /** govtrack.us omits the district segment entirely for at-large ("0") districts, e.g. /congress/members/WY. */
 if (!function_exists('district_page_url')) {
     function district_page_url(string $state, string $district): string
@@ -128,10 +138,10 @@ if (!function_exists('get_district')) {
         $matches = $data['result']['addressMatches'];
 
         if (count($matches) === 0) {
-            throw new InvalidAddressException("Census geocoder found no address match for \"{$address}\"");
+            throw new NoAddressMatchException("Census geocoder found no address match for \"{$address}\"");
         }
         if (count($matches) > 1) {
-            throw new InvalidAddressException("Census geocoder found multiple possible matches for \"{$address}\"; please provide a more specific address");
+            throw new AmbiguousAddressException("Census geocoder found multiple possible matches for \"{$address}\"; please provide a more specific address");
         }
 
         $match = $matches[0];

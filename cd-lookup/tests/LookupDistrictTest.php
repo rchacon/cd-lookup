@@ -306,4 +306,14 @@ class LookupDistrictTest extends TestCase
             district_page_url('WY', '0')
         );
     }
+
+    public function test_no_address_match_exception_is_an_invalid_address_exception(): void
+    {
+        $this->assertInstanceOf(InvalidAddressException::class, new NoAddressMatchException());
+    }
+
+    public function test_ambiguous_address_exception_is_an_invalid_address_exception(): void
+    {
+        $this->assertInstanceOf(InvalidAddressException::class, new AmbiguousAddressException());
+    }
 }
