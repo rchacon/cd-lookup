@@ -18,16 +18,26 @@ if (!function_exists('district_page_url')) {
     }
 }
 
-if (!function_exists('fetch_html')) {
-    function fetch_html(string $url): string
+/** Issue a GET request and return its body, error string, and HTTP status, so callers can compose their own error messages. */
+if (!function_exists('curl_get')) {
+    function curl_get(string $url): array
     {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        $html = curl_exec($ch);
+        $body = curl_exec($ch);
         $error = curl_error($ch);
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+
+        return ['body' => $body, 'error' => $error, 'status' => $status];
+    }
+}
+
+if (!function_exists('fetch_html')) {
+    function fetch_html(string $url): string
+    {
+        ['body' => $html, 'error' => $error, 'status' => $status] = curl_get($url);
 
         if ($html === false) {
             throw new RuntimeException("Failed to reach govtrack.us for district page: {$error}");
@@ -92,13 +102,7 @@ if (!function_exists('get_district')) {
             'format'    => 'json',
         ]);
 
-        $ch = curl_init($url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        ['body' => $response, 'error' => $error, 'status' => $status] = curl_get($url);
 
         if ($response === false) {
             throw new RuntimeException("Failed to reach the Census geocoder for district lookup: {$error}");
