@@ -54,6 +54,26 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
 }
 
 /**
+ * Return $compute()'s result, reusing a cached value under $cache_key when
+ * one passes $is_valid, to avoid re-doing $compute()'s work on every request.
+ * $is_valid guards against trusting a corrupted or foreign transient value
+ * as a hit (get_transient() returns bool false for a miss, which every
+ * caller's $is_valid here correctly rejects).
+ */
+function cd_lookup_cached( string $cache_key, int $ttl, callable $is_valid, callable $compute ): mixed {
+    $cached = get_transient( $cache_key );
+
+    if ( $is_valid( $cached ) ) {
+        return $cached;
+    }
+
+    $result = $compute();
+    set_transient( $cache_key, $result, $ttl );
+
+    return $result;
+}
+
+/**
  * Reuse a cached district lookup for this address, to avoid a Census geocoder round trip on every request.
  *
  * Cache entries are keyed per address with no cap on distinct entries, so an
@@ -63,16 +83,13 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
  */
 function cd_lookup_get_district( string $address ): array {
     $cache_key = CD_LOOKUP_DISTRICT_TRANSIENT_PREFIX . md5( cd_lookup_normalize_address_for_cache_key( $address ) );
-    $cached    = get_transient( $cache_key );
 
-    if ( is_array( $cached ) && isset( $cached[0], $cached[1] ) ) {
-        return $cached;
-    }
-
-    $result = get_district( $address );
-    set_transient( $cache_key, $result, CD_LOOKUP_DISTRICT_TTL );
-
-    return $result;
+    return cd_lookup_cached(
+        $cache_key,
+        CD_LOOKUP_DISTRICT_TTL,
+        fn ( $cached ) => is_array( $cached ) && isset( $cached[0], $cached[1] ),
+        fn () => get_district( $address )
+    );
 }
 
 /**
@@ -94,16 +111,13 @@ function cd_lookup_normalize_address_for_cache_key( string $address ): string {
  */
 function cd_lookup_fetch_html( string $url ): string {
     $cache_key = CD_LOOKUP_HTML_TRANSIENT_PREFIX . md5( $url );
-    $cached    = get_transient( $cache_key );
 
-    if ( is_string( $cached ) && $cached !== '' ) {
-        return $cached;
-    }
-
-    $html = fetch_html( $url );
-    set_transient( $cache_key, $html, CD_LOOKUP_HTML_TTL );
-
-    return $html;
+    return cd_lookup_cached(
+        $cache_key,
+        CD_LOOKUP_HTML_TTL,
+        fn ( $cached ) => is_string( $cached ) && $cached !== '',
+        fn () => fetch_html( $url )
+    );
 }
 
 /**
