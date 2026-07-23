@@ -31,8 +31,11 @@ if (!function_exists('wp_create_nonce')) {
         return 'test_nonce';
     }
 }
-if (!defined('MINUTE_IN_SECONDS')) {
-    define('MINUTE_IN_SECONDS', 60);
+if (!defined('DAY_IN_SECONDS')) {
+    define('DAY_IN_SECONDS', 24 * 60 * 60);
+}
+if (!defined('HOUR_IN_SECONDS')) {
+    define('HOUR_IN_SECONDS', 60 * 60);
 }
 if (!function_exists('get_transient')) {
     function get_transient(string $key): mixed
@@ -47,7 +50,6 @@ if (!function_exists('set_transient')) {
         return true;
     }
 }
-
 // WordPress class stubs.
 if (!class_exists('WP_REST_Request')) {
     class WP_REST_Request
@@ -81,23 +83,22 @@ if (!class_exists('WP_REST_Response')) {
 
 // HTTP function stubs — defined before LookupDistrict.php is loaded so the
 // function_exists guards there skip the real curl-based implementations.
-function get_token(): string
+function get_district(string $address): array
 {
-    $GLOBALS['stub_get_token_calls'] = ($GLOBALS['stub_get_token_calls'] ?? 0) + 1;
-    if (!empty($GLOBALS['stub_get_token_throws'])) {
-        throw new RuntimeException($GLOBALS['stub_get_token_throws']);
+    $GLOBALS['stub_get_district_calls'] = ($GLOBALS['stub_get_district_calls'] ?? 0) + 1;
+    $GLOBALS['stub_get_district_args'] = ['address' => $address];
+    if (!empty($GLOBALS['stub_get_district_throws'])) {
+        throw new RuntimeException($GLOBALS['stub_get_district_throws']);
     }
-    return 'stub_token';
-}
-
-function get_district(string $address, string $token): array
-{
-    $GLOBALS['stub_get_district_args'] = ['address' => $address, 'token' => $token];
-    return ['CA', 12];
+    if (!empty($GLOBALS['stub_get_district_throws_invalid_address'])) {
+        throw new InvalidAddressException($GLOBALS['stub_get_district_throws_invalid_address']);
+    }
+    return $GLOBALS['stub_get_district_return'] ?? ['CA', '12'];
 }
 
 function fetch_html(string $url): string
 {
+    $GLOBALS['stub_fetch_html_calls'] = ($GLOBALS['stub_fetch_html_calls'] ?? 0) + 1;
     $GLOBALS['stub_fetch_html_url'] = $url;
     return file_get_contents(__DIR__ . '/data/12th_congressional_district.html');
 }

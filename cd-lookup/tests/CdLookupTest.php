@@ -9,9 +9,12 @@ class CdLookupTest extends TestCase
     protected function setUp(): void
     {
         $GLOBALS['stub_get_district_args'] = null;
+        $GLOBALS['stub_get_district_calls'] = 0;
+        $GLOBALS['stub_get_district_throws'] = null;
+        $GLOBALS['stub_get_district_throws_invalid_address'] = null;
+        $GLOBALS['stub_get_district_return'] = null;
         $GLOBALS['stub_fetch_html_url'] = null;
-        $GLOBALS['stub_get_token_throws'] = null;
-        $GLOBALS['stub_get_token_calls'] = 0;
+        $GLOBALS['stub_fetch_html_calls'] = 0;
         $GLOBALS['stub_transients'] = [];
     }
 
@@ -45,17 +48,21 @@ class CdLookupTest extends TestCase
         $this->assertSame('123 Main St, Oakland, CA 94601', $GLOBALS['stub_get_district_args']['address']);
     }
 
-    public function test_passes_token_to_get_district(): void
-    {
-        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
-        $this->assertSame('stub_token', $GLOBALS['stub_get_district_args']['token']);
-    }
-
     public function test_fetches_correct_district_page_url(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
         $this->assertSame(
             'https://www.govtrack.us/congress/members/CA/12',
+            $GLOBALS['stub_fetch_html_url']
+        );
+    }
+
+    public function test_fetches_district_page_url_without_district_segment_for_at_large_districts(): void
+    {
+        $GLOBALS['stub_get_district_return'] = ['WY', '0'];
+        cd_lookup_get_representatives($this->makeRequest('200 W 24th St, Cheyenne, WY 82002'));
+        $this->assertSame(
+            'https://www.govtrack.us/congress/members/WY',
             $GLOBALS['stub_fetch_html_url']
         );
     }
@@ -67,41 +74,87 @@ class CdLookupTest extends TestCase
         $this->assertNotEmpty($data['representatives']);
     }
 
-    public function test_get_token_failure_returns_502_instead_of_throwing(): void
+    public function test_get_district_failure_returns_502_instead_of_throwing(): void
     {
-        $GLOBALS['stub_get_token_throws'] = 'Failed to reach govtrack.us for CSRF token: timed out (after 2 attempts)';
+        $GLOBALS['stub_get_district_throws'] = 'Failed to reach the Census geocoder for district lookup: timed out';
         $result = cd_lookup_get_representatives($this->makeRequest('123 Main St'));
         $this->assertInstanceOf(WP_REST_Response::class, $result);
         $this->assertSame(502, $result->get_status());
     }
 
-    public function test_get_token_failure_response_includes_original_message(): void
+    public function test_get_district_failure_response_includes_original_message(): void
     {
-        $GLOBALS['stub_get_token_throws'] = 'Failed to reach govtrack.us for CSRF token: timed out (after 2 attempts)';
+        $GLOBALS['stub_get_district_throws'] = 'Failed to reach the Census geocoder for district lookup: timed out';
         $data = cd_lookup_get_representatives($this->makeRequest('123 Main St'))->get_data();
         $this->assertSame(
-            'Failed to reach govtrack.us for CSRF token: timed out (after 2 attempts)',
+            'Failed to reach the Census geocoder for district lookup: timed out',
             $data['message']
         );
     }
 
-    public function test_second_request_reuses_cached_token_instead_of_calling_get_token_again(): void
+    public function test_invalid_address_returns_422_instead_of_502(): void
+    {
+        $GLOBALS['stub_get_district_throws_invalid_address'] = 'Census geocoder found no address match for "not a real address"';
+        $result = cd_lookup_get_representatives($this->makeRequest('not a real address'));
+        $this->assertInstanceOf(WP_REST_Response::class, $result);
+        $this->assertSame(422, $result->get_status());
+    }
+
+    public function test_invalid_address_response_includes_original_message(): void
+    {
+        $GLOBALS['stub_get_district_throws_invalid_address'] = 'Census geocoder found no address match for "not a real address"';
+        $data = cd_lookup_get_representatives($this->makeRequest('not a real address'))->get_data();
+        $this->assertSame(
+            'Census geocoder found no address match for "not a real address"',
+            $data['message']
+        );
+    }
+
+    public function test_second_request_for_same_address_reuses_cached_district(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(1, $GLOBALS['stub_get_district_calls']);
+    }
+
+    public function test_request_for_a_different_address_does_not_reuse_the_cache(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
         cd_lookup_get_representatives($this->makeRequest('456 Elm St'));
-        $this->assertSame(1, $GLOBALS['stub_get_token_calls']);
+        $this->assertSame(2, $GLOBALS['stub_get_district_calls']);
     }
 
-    public function test_cached_token_is_still_passed_to_get_district(): void
+    public function test_no_cached_district_fetches_a_new_one(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
-        cd_lookup_get_representatives($this->makeRequest('456 Elm St'));
-        $this->assertSame('stub_token', $GLOBALS['stub_get_district_args']['token']);
+        $this->assertSame(1, $GLOBALS['stub_get_district_calls']);
     }
 
-    public function test_no_cached_token_fetches_a_new_one(): void
+    public function test_differently_cased_or_spaced_address_reuses_the_cache(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
-        $this->assertSame(1, $GLOBALS['stub_get_token_calls']);
+        cd_lookup_get_representatives($this->makeRequest('  123  main st  '));
+        $this->assertSame(1, $GLOBALS['stub_get_district_calls']);
+    }
+
+    public function test_second_request_for_same_district_reuses_cached_html(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(1, $GLOBALS['stub_fetch_html_calls']);
+    }
+
+    public function test_request_for_a_different_district_does_not_reuse_the_html_cache(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $GLOBALS['stub_get_district_return'] = ['WY', '0'];
+        cd_lookup_get_representatives($this->makeRequest('200 W 24th St, Cheyenne, WY 82002'));
+        $this->assertSame(2, $GLOBALS['stub_fetch_html_calls']);
+    }
+
+    public function test_no_cached_html_fetches_a_new_one(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(1, $GLOBALS['stub_fetch_html_calls']);
     }
 }
