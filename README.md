@@ -1,6 +1,6 @@
 # cd-lookup
 
-WordPress plugin for Looking up representatives for your Congressional District.
+WordPress plugin for looking up representatives for your Congressional District.
 
 Visitors enter a street address into a form (via the `[cd_lookup]` shortcode) and get back
 their U.S. senators and House representative — name, party, role, phone, official website,
