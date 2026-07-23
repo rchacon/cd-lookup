@@ -2,8 +2,6 @@ name: WordPress Plugin Tests
 
 on:
   pull_request:
-    paths:
-      - 'cd-lookup/**'
 
 jobs:
   phpunit:
