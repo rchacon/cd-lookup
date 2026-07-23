@@ -11,7 +11,3 @@ and headshot — looked up live from [GovTrack](https://www.govtrack.us/).
 ## Usage
 
 See `cd-lookup` for actual plugin.
-
-## Discovery
-
-See `discovery/` for initial scraper written in `python`.
