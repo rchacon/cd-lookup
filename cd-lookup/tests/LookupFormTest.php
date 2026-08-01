@@ -102,4 +102,27 @@ class LookupFormTest extends TestCase
         $this->assertStringContainsString('data.senators', $this->output);
         $this->assertStringContainsString('data.representatives', $this->output);
     }
+
+    public function test_script_passes_district_only_to_the_representatives_group(): void
+    {
+        $this->assertStringContainsString(
+            "renderGroup('Representatives', data.representatives, data.district)",
+            $this->output
+        );
+        $this->assertStringContainsString("renderGroup('Senators', data.senators)", $this->output);
+    }
+
+    public function test_script_defines_ordinal_function(): void
+    {
+        $this->assertStringContainsString('function ordinal(', $this->output);
+    }
+
+    public function test_script_appends_congressional_district_suffix_for_non_at_large_districts(): void
+    {
+        $this->assertStringContainsString(
+            'for the ${ordinal(district)} congressional district',
+            $this->output
+        );
+        $this->assertStringContainsString("district && district !== '0'", $this->output);
+    }
 }

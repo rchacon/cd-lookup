@@ -182,26 +182,37 @@
 
     function renderResults(data) {
         return renderGroup('Senators', data.senators)
-             + renderGroup('Representatives', data.representatives);
+             + renderGroup('Representatives', data.representatives, data.district);
     }
 
-    function renderGroup(heading, people) {
+    function renderGroup(heading, people, district) {
         if (!people.length) return '';
-        const items = people.map(p =>
-            `<li class="cdl-person">
+        const items = people.map(p => {
+            const role = district && district !== '0'
+                ? `${p.role} for the ${ordinal(district)} congressional district`
+                : p.role;
+            return `<li class="cdl-person">
                 ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.full_name}" width="80" height="80">` : ''}
                 <div>
                     <p class="cdl-name">${p.full_name}</p>
-                    <p class="cdl-role">${p.role}</p>
+                    <p class="cdl-role">${role}</p>
                     <p class="cdl-meta">
                         <span class="cdl-party">${p.party}</span>
                         ${p.phone ? `<a href="tel:${p.phone}">${p.phone}</a>` : ''}
                         ${p.website ? `&bull; <a href="${p.website}">${p.website}</a>` : ''}
                     </p>
                 </div>
-            </li>`
-        ).join('');
+            </li>`;
+        }).join('');
         return `<h3>${heading}</h3><ul>${items}</ul>`;
+    }
+
+    // District is not at-large ("0") -- e.g. 12 -> "12th", 1 -> "1st", 11 -> "11th".
+    function ordinal(n) {
+        n = Number(n);
+        const suffixes = ['th', 'st', 'nd', 'rd'];
+        const v = n % 100;
+        return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
     }
 }());
 </script>

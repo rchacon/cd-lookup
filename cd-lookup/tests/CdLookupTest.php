@@ -45,6 +45,19 @@ class CdLookupTest extends TestCase
         $this->assertArrayHasKey('representatives', $data);
     }
 
+    public function test_response_data_includes_the_resolved_district(): void
+    {
+        $data = cd_lookup_get_representatives($this->makeRequest('123 Main St'))->get_data();
+        $this->assertSame('12', $data['district']);
+    }
+
+    public function test_response_data_includes_at_large_district(): void
+    {
+        $GLOBALS['stub_get_district_return'] = ['WY', '0'];
+        $data = cd_lookup_get_representatives($this->makeRequest('200 W 24th St, Cheyenne, WY 82002'))->get_data();
+        $this->assertSame('0', $data['district']);
+    }
+
     public function test_passes_address_from_request_to_get_district(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St, Oakland, CA 94601'));

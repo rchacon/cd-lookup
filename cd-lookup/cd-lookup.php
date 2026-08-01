@@ -57,7 +57,10 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
         return new WP_REST_Response( [ 'message' => $e->getMessage() ], 502 );
     }
 
-    return new WP_REST_Response( cd_lookup_sanitize_reps( $members ), 200 );
+    $response = cd_lookup_sanitize_reps( $members );
+    $response['district'] = $district;
+
+    return new WP_REST_Response( $response, 200 );
 }
 
 /**
