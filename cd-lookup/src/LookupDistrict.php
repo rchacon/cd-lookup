@@ -1,7 +1,7 @@
 <?php
 
 const CENSUS_GEOCODER_ENDPOINT = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress';
-const CD_PLATFORM_MEMBERS_ENDPOINT = 'https://lix3lbjjkl.execute-api.us-west-2.amazonaws.com/prod/members';
+const CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT = 'https://lix3lbjjkl.execute-api.us-west-2.amazonaws.com/prod/members';
 
 /** A problem with the address itself (no match or too ambiguous to resolve) rather than a geocoder/network failure. */
 if (!class_exists('InvalidAddressException')) {
@@ -46,9 +46,9 @@ if (!function_exists('curl_get')) {
  * old govtrack.us fetch followed (see cd-lookup#8).
  */
 if (!function_exists('fetch_members')) {
-    function fetch_members(string $state, string $district, string $api_key): array
+    function fetch_members(string $state, string $district, string $api_key, string $endpoint = CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT): array
     {
-        $url = CD_PLATFORM_MEMBERS_ENDPOINT . '?' . http_build_query([
+        $url = $endpoint . '?' . http_build_query([
             'state'    => $state,
             'district' => (int) $district,
         ]);

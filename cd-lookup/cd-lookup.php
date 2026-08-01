@@ -50,7 +50,8 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
             throw new RuntimeException( 'CD Lookup API key is not configured.' );
         }
 
-        $members = cd_lookup_fetch_members( $state, $district, $api_key );
+        $endpoint = get_option( 'cd_lookup_api_endpoint', CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT );
+        $members  = cd_lookup_fetch_members( $state, $district, $api_key, $endpoint );
     } catch ( InvalidAddressException $e ) {
         return new WP_REST_Response( [ 'message' => $e->getMessage() ], 422 );
     } catch ( RuntimeException $e ) {
@@ -119,14 +120,14 @@ function cd_lookup_normalize_address_for_cache_key( string $address ): string {
  * since a district's roster of representatives can change (resignation,
  * special election) far more often than its boundaries do.
  */
-function cd_lookup_fetch_members( string $state, string $district, string $api_key ): array {
+function cd_lookup_fetch_members( string $state, string $district, string $api_key, string $endpoint ): array {
     $cache_key = CD_LOOKUP_MEMBERS_TRANSIENT_PREFIX . md5( "{$state}:{$district}" );
 
     return cd_lookup_cached(
         $cache_key,
         CD_LOOKUP_MEMBERS_TTL,
         fn ( $cached ) => is_array( $cached ) && isset( $cached['senators'], $cached['representatives'] ),
-        fn () => fetch_members( $state, $district, $api_key )
+        fn () => fetch_members( $state, $district, $api_key, $endpoint )
     );
 }
 

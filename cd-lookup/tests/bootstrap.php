@@ -154,10 +154,10 @@ function get_district(string $address): array
     return $GLOBALS['stub_get_district_return'] ?? ['CA', '12'];
 }
 
-function fetch_members(string $state, string $district, string $api_key): array
+function fetch_members(string $state, string $district, string $api_key, string $endpoint = ''): array
 {
     $GLOBALS['stub_fetch_members_calls'] = ($GLOBALS['stub_fetch_members_calls'] ?? 0) + 1;
-    $GLOBALS['stub_fetch_members_args'] = ['state' => $state, 'district' => $district, 'api_key' => $api_key];
+    $GLOBALS['stub_fetch_members_args'] = ['state' => $state, 'district' => $district, 'api_key' => $api_key, 'endpoint' => $endpoint];
     if (!empty($GLOBALS['stub_fetch_members_throws'])) {
         throw new RuntimeException($GLOBALS['stub_fetch_members_throws']);
     }

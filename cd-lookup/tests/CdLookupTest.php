@@ -68,7 +68,12 @@ class CdLookupTest extends TestCase
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
         $this->assertSame(
-            ['state' => 'CA', 'district' => '12', 'api_key' => 'test-api-key'],
+            [
+                'state'    => 'CA',
+                'district' => '12',
+                'api_key'  => 'test-api-key',
+                'endpoint' => CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT,
+            ],
             $GLOBALS['stub_fetch_members_args']
         );
     }
@@ -78,6 +83,19 @@ class CdLookupTest extends TestCase
         $GLOBALS['stub_get_district_return'] = ['WY', '0'];
         cd_lookup_get_representatives($this->makeRequest('200 W 24th St, Cheyenne, WY 82002'));
         $this->assertSame('0', $GLOBALS['stub_fetch_members_args']['district']);
+    }
+
+    public function test_uses_the_default_endpoint_when_no_override_option_is_set(): void
+    {
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT, $GLOBALS['stub_fetch_members_args']['endpoint']);
+    }
+
+    public function test_uses_the_overridden_endpoint_option_when_set(): void
+    {
+        $GLOBALS['stub_options']['cd_lookup_api_endpoint'] = 'https://staging.example.test/members';
+        cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame('https://staging.example.test/members', $GLOBALS['stub_fetch_members_args']['endpoint']);
     }
 
     public function test_missing_api_key_returns_502(): void
