@@ -42,3 +42,25 @@ This is a WordPress plugin that looks up U.S. congressional representatives by s
 - `tests/data/12th_congressional_district.html` — HTML fixture used by tests
 
 **Testing approach:** Tests never hit the network. `bootstrap.php` defines stub implementations of `get_district` and `fetch_html` before `LookupDistrict.php` is loaded; the `function_exists` guards in `LookupDistrict.php` cause the real cURL implementations to be skipped. `bootstrap.php` also stubs `get_transient`/`set_transient` (backed by an in-memory `$GLOBALS['stub_transients']` array), which `cd_lookup_get_district()`/`cd_lookup_fetch_html()` in `cd-lookup.php` depend on for their caching. The fixture file provides real govtrack HTML for `parse_reps` tests.
+
+## Git conventions
+
+PRs are merged with a merge commit (`gh pr merge --merge`), not squash or
+rebase — preserves the individual commit history from the PR branch.
+After merging, delete the branch both locally and remotely
+(`gh pr merge --merge --delete-branch` does both in one step).
+
+When addressing review comments on an open PR, break the fixes up into
+separate commits along logical lines (one commit per distinct issue/fix,
+not one commit for everything) rather than a single catch-all commit, and
+reply to each review comment on GitHub referencing the specific commit
+hash that addressed it (e.g. "Fixed in `abc1234`.") -- keeps the review
+thread traceable to the exact change that resolved it, rather than a
+generic "addressed" reply pointing at the whole PR.
+
+When *submitting* a code review on a PR, post each finding as its own
+separate inline review comment (anchored to the specific file/line via
+`gh api repos/{owner}/{repo}/pulls/{number}/comments`, not a single bundled
+`gh pr comment`) -- a combined comment listing every finding only supports
+one flat reply thread, making it impossible to reply to (or resolve)
+individual findings separately later.
