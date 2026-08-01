@@ -144,12 +144,12 @@ function cd_lookup_sanitize_reps( array $reps ): array {
 
 function cd_lookup_sanitize_person( array $person ): array {
     return [
-        'full_name' => htmlspecialchars( $person['full_name'], ENT_QUOTES, 'UTF-8' ),
-        'role'      => htmlspecialchars( $person['role'], ENT_QUOTES, 'UTF-8' ),
-        'party'     => htmlspecialchars( $person['party'], ENT_QUOTES, 'UTF-8' ),
-        'phone'     => cd_lookup_sanitize_phone( $person['phone'] ),
-        'website'   => cd_lookup_sanitize_url( $person['website'] ),
-        'photo_url' => cd_lookup_sanitize_url( $person['photo_url'] ),
+        'full_name' => htmlspecialchars( $person['full_name'] ?? '', ENT_QUOTES, 'UTF-8' ),
+        'role'      => htmlspecialchars( $person['role'] ?? '', ENT_QUOTES, 'UTF-8' ),
+        'party'     => htmlspecialchars( $person['party'] ?? '', ENT_QUOTES, 'UTF-8' ),
+        'phone'     => cd_lookup_sanitize_phone( $person['phone'] ?? '' ),
+        'website'   => cd_lookup_sanitize_url( $person['website'] ?? '' ),
+        'photo_url' => cd_lookup_sanitize_url( $person['photo_url'] ?? '' ),
     ];
 }
 

@@ -68,6 +68,30 @@ class CdLookupSanitizeTest extends TestCase
         $this->assertSame('', $sanitized['photo_url']);
     }
 
+    public function test_sanitize_person_does_not_crash_on_null_phone(): void
+    {
+        $sanitized = cd_lookup_sanitize_person($this->person(['phone' => null]));
+        $this->assertSame('', $sanitized['phone']);
+    }
+
+    public function test_sanitize_person_does_not_crash_on_null_website(): void
+    {
+        $sanitized = cd_lookup_sanitize_person($this->person(['website' => null]));
+        $this->assertSame('', $sanitized['website']);
+    }
+
+    public function test_sanitize_person_does_not_crash_on_null_photo_url(): void
+    {
+        $sanitized = cd_lookup_sanitize_person($this->person(['photo_url' => null]));
+        $this->assertSame('', $sanitized['photo_url']);
+    }
+
+    public function test_sanitize_person_does_not_crash_on_null_party(): void
+    {
+        $sanitized = cd_lookup_sanitize_person($this->person(['party' => null]));
+        $this->assertSame('', $sanitized['party']);
+    }
+
     public function test_sanitize_phone_strips_non_phone_characters(): void
     {
         $this->assertSame('202-225-2661', cd_lookup_sanitize_phone('202-225-2661'));
