@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once __DIR__ . '/src/LookupDistrict.php';
+require_once __DIR__ . '/src/Settings.php';
 
 add_action( 'rest_api_init', function () {
     register_rest_route( 'cd-lookup/v1', '/representatives', [
@@ -35,22 +36,32 @@ add_action( 'rest_api_init', function () {
 const CD_LOOKUP_DISTRICT_TRANSIENT_PREFIX = 'cd_lookup_district_';
 const CD_LOOKUP_DISTRICT_TTL              = DAY_IN_SECONDS;
 
-const CD_LOOKUP_HTML_TRANSIENT_PREFIX = 'cd_lookup_html_';
-const CD_LOOKUP_HTML_TTL              = HOUR_IN_SECONDS;
+const CD_LOOKUP_MEMBERS_TRANSIENT_PREFIX = 'cd_lookup_members_';
+const CD_LOOKUP_MEMBERS_TTL              = HOUR_IN_SECONDS;
 
 function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Response {
     $address = $request->get_param( 'address' );
 
     try {
         [ $state, $district ] = cd_lookup_get_district( $address );
-        $html = cd_lookup_fetch_html( district_page_url( $state, $district ) );
+
+        $api_key = get_option( 'cd_lookup_api_key', '' );
+        if ( $api_key === '' ) {
+            throw new RuntimeException( 'CD Lookup API key is not configured.' );
+        }
+
+        $endpoint = get_option( 'cd_lookup_api_endpoint', CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT );
+        $members  = cd_lookup_fetch_members( $state, $district, $api_key, $endpoint );
     } catch ( InvalidAddressException $e ) {
         return new WP_REST_Response( [ 'message' => $e->getMessage() ], 422 );
     } catch ( RuntimeException $e ) {
         return new WP_REST_Response( [ 'message' => $e->getMessage() ], 502 );
     }
 
-    return new WP_REST_Response( cd_lookup_sanitize_reps( parse_reps( $html ) ), 200 );
+    $response = cd_lookup_sanitize_reps( $members );
+    $response['district'] = $district;
+
+    return new WP_REST_Response( $response, 200 );
 }
 
 /**
@@ -104,28 +115,26 @@ function cd_lookup_normalize_address_for_cache_key( string $address ): string {
 }
 
 /**
- * Reuse a cached district page fetch for this URL, to avoid a govtrack.us
- * round trip on every request. Shorter TTL than the district cache since
- * a district's roster of representatives can change (resignation, special
- * election) far more often than its boundaries do.
+ * Reuse a cached cd-platform members lookup for this state/district, to
+ * avoid a round trip on every request. Shorter TTL than the district cache
+ * since a district's roster of representatives can change (resignation,
+ * special election) far more often than its boundaries do.
  */
-function cd_lookup_fetch_html( string $url ): string {
-    $cache_key = CD_LOOKUP_HTML_TRANSIENT_PREFIX . md5( $url );
+function cd_lookup_fetch_members( string $state, string $district, string $api_key, string $endpoint ): array {
+    $cache_key = CD_LOOKUP_MEMBERS_TRANSIENT_PREFIX . md5( "{$state}:{$district}" );
 
     return cd_lookup_cached(
         $cache_key,
-        CD_LOOKUP_HTML_TTL,
-        fn ( $cached ) => is_string( $cached ) && $cached !== '',
-        fn () => fetch_html( $url )
+        CD_LOOKUP_MEMBERS_TTL,
+        fn ( $cached ) => is_array( $cached ) && isset( $cached['senators'], $cached['representatives'] ),
+        fn () => fetch_members( $state, $district, $api_key, $endpoint )
     );
 }
 
 /**
- * Sanitize scraped representative data before it reaches the browser.
- *
- * parse_reps() returns raw scraped text (also used by the CLI tool and its tests),
- * so this is the boundary where that data becomes safe for the client-side
- * renderer in templates/lookup-form.php to drop directly into innerHTML.
+ * Sanitize cd-platform's member data before it reaches the browser -- this
+ * is the boundary where that data becomes safe for the client-side renderer
+ * in templates/lookup-form.php to drop directly into innerHTML.
  */
 function cd_lookup_sanitize_reps( array $reps ): array {
     return [
@@ -136,13 +145,12 @@ function cd_lookup_sanitize_reps( array $reps ): array {
 
 function cd_lookup_sanitize_person( array $person ): array {
     return [
-        'full_name'   => htmlspecialchars( $person['full_name'], ENT_QUOTES, 'UTF-8' ),
-        'role'        => htmlspecialchars( $person['role'], ENT_QUOTES, 'UTF-8' ),
-        'party'       => htmlspecialchars( $person['party'], ENT_QUOTES, 'UTF-8' ),
-        'phone'       => cd_lookup_sanitize_phone( $person['phone'] ),
-        'website'     => cd_lookup_sanitize_url( $person['website'] ),
-        'profile_url' => $person['profile_url'],
-        'photo_url'   => cd_lookup_sanitize_photo_path( $person['photo_url'] ),
+        'full_name' => htmlspecialchars( $person['full_name'] ?? '', ENT_QUOTES, 'UTF-8' ),
+        'role'      => htmlspecialchars( $person['role'] ?? '', ENT_QUOTES, 'UTF-8' ),
+        'party'     => htmlspecialchars( $person['party'] ?? '', ENT_QUOTES, 'UTF-8' ),
+        'phone'     => cd_lookup_sanitize_phone( $person['phone'] ?? '' ),
+        'website'   => cd_lookup_sanitize_url( $person['website'] ?? '' ),
+        'photo_url' => cd_lookup_sanitize_url( $person['photo_url'] ?? '' ),
     ];
 }
 
@@ -151,20 +159,12 @@ function cd_lookup_sanitize_phone( string $phone ): string {
     return trim( preg_replace( '/[^0-9+\-() ]/', '', $phone ) );
 }
 
-/** Only allow http(s) URLs through, so scraped markup can't smuggle a javascript: URI into an href. */
+/** Only allow http(s) URLs through, so the API response can't smuggle a javascript: URI into an href/src. */
 function cd_lookup_sanitize_url( string $url ): string {
     if ( ! in_array( parse_url( $url, PHP_URL_SCHEME ), [ 'http', 'https' ], true ) ) {
         return '';
     }
     return htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' );
-}
-
-/** Only allow a plain relative path through, so it's safe to concatenate onto the govtrack.us host. */
-function cd_lookup_sanitize_photo_path( string $path ): string {
-    if ( ! preg_match( '#^/[A-Za-z0-9/_.-]*$#', $path ) ) {
-        return '';
-    }
-    return htmlspecialchars( $path, ENT_QUOTES, 'UTF-8' );
 }
 
 add_shortcode( 'cd_lookup', function () {

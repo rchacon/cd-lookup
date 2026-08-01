@@ -9,13 +9,12 @@ class CdLookupSanitizeTest extends TestCase
     private function person(array $overrides = []): array
     {
         return array_merge([
-            'full_name'   => 'Jane Doe',
-            'role'        => 'Representative',
-            'party'       => 'Independent',
-            'phone'       => '202-225-2661',
-            'website'     => 'https://example.gov',
-            'profile_url' => '/congress/members/jane_doe/1',
-            'photo_url'   => '/static/legislator-photos/1-100px.jpeg',
+            'full_name' => 'Jane Doe',
+            'role'      => 'Representative',
+            'party'     => 'Independent',
+            'phone'     => '202-225-2661',
+            'website'   => 'https://example.gov',
+            'photo_url' => 'https://www.congress.gov/img/member/1-200.jpg',
         ], $overrides);
     }
 
@@ -49,11 +48,48 @@ class CdLookupSanitizeTest extends TestCase
         $this->assertSame('&lt;i&gt;Democrat&lt;/i&gt;', $sanitized['party']);
     }
 
-    public function test_sanitize_person_passes_profile_url_through_unchanged(): void
+    public function test_sanitize_person_does_not_include_a_profile_url_field(): void
     {
-        $person = $this->person(['profile_url' => '/congress/members/jane_doe/1']);
+        $sanitized = cd_lookup_sanitize_person($this->person());
+        $this->assertArrayNotHasKey('profile_url', $sanitized);
+    }
+
+    public function test_sanitize_person_allows_absolute_https_photo_url(): void
+    {
+        $person = $this->person(['photo_url' => 'https://www.congress.gov/img/member/1-200.jpg']);
         $sanitized = cd_lookup_sanitize_person($person);
-        $this->assertSame('/congress/members/jane_doe/1', $sanitized['profile_url']);
+        $this->assertSame('https://www.congress.gov/img/member/1-200.jpg', $sanitized['photo_url']);
+    }
+
+    public function test_sanitize_person_rejects_non_http_photo_url(): void
+    {
+        $person = $this->person(['photo_url' => 'javascript:alert(1)']);
+        $sanitized = cd_lookup_sanitize_person($person);
+        $this->assertSame('', $sanitized['photo_url']);
+    }
+
+    public function test_sanitize_person_does_not_crash_on_null_phone(): void
+    {
+        $sanitized = cd_lookup_sanitize_person($this->person(['phone' => null]));
+        $this->assertSame('', $sanitized['phone']);
+    }
+
+    public function test_sanitize_person_does_not_crash_on_null_website(): void
+    {
+        $sanitized = cd_lookup_sanitize_person($this->person(['website' => null]));
+        $this->assertSame('', $sanitized['website']);
+    }
+
+    public function test_sanitize_person_does_not_crash_on_null_photo_url(): void
+    {
+        $sanitized = cd_lookup_sanitize_person($this->person(['photo_url' => null]));
+        $this->assertSame('', $sanitized['photo_url']);
+    }
+
+    public function test_sanitize_person_does_not_crash_on_null_party(): void
+    {
+        $sanitized = cd_lookup_sanitize_person($this->person(['party' => null]));
+        $this->assertSame('', $sanitized['party']);
     }
 
     public function test_sanitize_phone_strips_non_phone_characters(): void
@@ -87,22 +123,4 @@ class CdLookupSanitizeTest extends TestCase
         );
     }
 
-    public function test_sanitize_photo_path_allows_expected_govtrack_path(): void
-    {
-        $this->assertSame(
-            '/static/legislator-photos/1-100px.jpeg',
-            cd_lookup_sanitize_photo_path('/static/legislator-photos/1-100px.jpeg')
-        );
-    }
-
-    public function test_sanitize_photo_path_rejects_absolute_urls_and_attribute_breakouts(): void
-    {
-        $this->assertSame('', cd_lookup_sanitize_photo_path('https://evil.example/x.jpg'));
-        $this->assertSame('', cd_lookup_sanitize_photo_path('/x.jpg" onerror="alert(1)'));
-    }
-
-    public function test_sanitize_photo_path_rejects_empty_path(): void
-    {
-        $this->assertSame('', cd_lookup_sanitize_photo_path(''));
-    }
 }

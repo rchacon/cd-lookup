@@ -1,7 +1,7 @@
 <?php
 
-const URL = 'https://www.govtrack.us/';
 const CENSUS_GEOCODER_ENDPOINT = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress';
+const CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT = 'https://lix3lbjjkl.execute-api.us-west-2.amazonaws.com/prod/members';
 
 /** A problem with the address itself (no match or too ambiguous to resolve) rather than a geocoder/network failure. */
 if (!class_exists('InvalidAddressException')) {
@@ -18,23 +18,16 @@ if (!class_exists('AmbiguousAddressException')) {
     class AmbiguousAddressException extends InvalidAddressException {}
 }
 
-/** govtrack.us omits the district segment entirely for at-large ("0") districts, e.g. /congress/members/WY. */
-if (!function_exists('district_page_url')) {
-    function district_page_url(string $state, string $district): string
-    {
-        return $district === '0'
-            ? URL . "congress/members/{$state}"
-            : URL . "congress/members/{$state}/{$district}";
-    }
-}
-
 /** Issue a GET request and return its body, error string, and HTTP status, so callers can compose their own error messages. */
 if (!function_exists('curl_get')) {
-    function curl_get(string $url): array
+    function curl_get(string $url, array $headers = []): array
     {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        if ($headers) {
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        }
         $body = curl_exec($ch);
         $error = curl_error($ch);
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -44,22 +37,41 @@ if (!function_exists('curl_get')) {
     }
 }
 
-if (!function_exists('fetch_html')) {
-    function fetch_html(string $url): string
+/**
+ * Fetch senators/representatives for a state (and optional district) from
+ * cd-platform's cd-api. Returns ['senators' => [...], 'representatives' => [...]],
+ * each person an array with keys: full_name, role, party, phone, website, photo_url.
+ *
+ * No retry/backoff on failure -- a single attempt only, same convention the
+ * old govtrack.us fetch followed (see cd-lookup#8).
+ */
+if (!function_exists('fetch_members')) {
+    function fetch_members(string $state, string $district, string $api_key, string $endpoint = CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT): array
     {
-        ['body' => $html, 'error' => $error, 'status' => $status] = curl_get($url);
+        $url = $endpoint . '?' . http_build_query([
+            'state'    => $state,
+            'district' => (int) $district,
+        ]);
 
-        if ($html === false) {
-            throw new RuntimeException("Failed to reach govtrack.us for district page: {$error}");
+        ['body' => $response, 'error' => $error, 'status' => $status] = curl_get($url, ["x-api-key: {$api_key}"]);
+
+        if ($response === false) {
+            throw new RuntimeException("Failed to reach cd-platform API: {$error}");
         }
         if ($status < 200 || $status >= 300) {
-            throw new RuntimeException("govtrack.us returned HTTP {$status} while fetching district page");
-        }
-        if (trim($html) === '') {
-            throw new RuntimeException('govtrack.us returned an empty response while fetching district page');
+            $problem = json_decode($response, true);
+            $detail = is_array($problem) && isset($problem['detail']) ? $problem['detail'] : null;
+            throw new RuntimeException($detail ?? "cd-platform API returned HTTP {$status}");
         }
 
-        return $html;
+        $data = json_decode($response, true);
+
+        if (!is_array($data) || !isset($data['senators'], $data['representatives'])
+            || !is_array($data['senators']) || !is_array($data['representatives'])) {
+            throw new RuntimeException('cd-platform API returned an unexpected response while fetching members');
+        }
+
+        return $data;
     }
 }
 
@@ -161,90 +173,20 @@ if (!function_exists('get_district')) {
 }
 
 /**
- * Parse a govtrack.us district page and return senators and representatives.
- *
- * Returns an array with keys 'senators' and 'representatives', each a list of
- * arrays with keys: full_name, role, party, phone, website, profile_url, photo_url.
- * photo_url is '' when govtrack has no headshot on file.
+ * Look up and display congressional representatives for the given street
+ * address, via cd-platform. Reads the API key from the CD_API_KEY env var
+ * since get_option() (WordPress) isn't available in this CLI context.
  */
-if (!function_exists('parse_reps')) {
-    function parse_reps(string $html): array
-    {
-        $dom = new DOMDocument();
-        @$dom->loadHTML($html);
-        $xpath = new DOMXPath($dom);
-
-        $senators = [];
-        $representatives = [];
-
-        $rows = $xpath->query('//div[contains(@class,"row") and contains(@style,"margin-bottom: 1.5em")]');
-        foreach ($rows as $row) {
-            $info_divs = $xpath->query('.//div[contains(@class,"col-sm-9")]', $row);
-            if ($info_divs->length === 0) {
-                continue;
-            }
-            $info_div = $info_divs->item(0);
-
-            $name_tags = $xpath->query('.//a[contains(@style,"font-weight: bold")]', $info_div);
-            if ($name_tags->length === 0) {
-                continue;
-            }
-            $name_tag = $name_tags->item(0);
-            $full_name = trim($name_tag->textContent);
-            $profile_url = $name_tag->getAttribute('href');
-
-            $photo_tags = $xpath->query('.//div[contains(@class,"col-sm-3")]//img', $row);
-            $photo_url = $photo_tags->length > 0 ? $photo_tags->item(0)->getAttribute('src') : '';
-
-            $child_divs = $xpath->query('div', $info_div);
-            $role = $child_divs->length > 1 ? trim($child_divs->item(1)->textContent) : '';
-
-            $party_divs = $xpath->query('.//div[contains(@style,"margin-bottom: .45em")]', $info_div);
-            $party = $party_divs->length > 0 ? trim($party_divs->item(0)->textContent) : '';
-
-            $phone_tags = $xpath->query('.//a[starts-with(@href,"tel:")]', $info_div);
-            $phone = $phone_tags->length > 0 ? trim($phone_tags->item(0)->textContent) : '';
-
-            $website = '';
-            $spanbullets = $xpath->query('.//div[contains(@class,"spanbullets")]', $info_div);
-            if ($spanbullets->length > 0) {
-                $website_tags = $xpath->query('.//a[not(starts-with(@href,"tel:"))]', $spanbullets->item(0));
-                if ($website_tags->length > 0) {
-                    $website = $website_tags->item(0)->getAttribute('href');
-                }
-            }
-
-            $person = [
-                'full_name'   => $full_name,
-                'role'        => $role,
-                'party'       => $party,
-                'phone'       => $phone,
-                'website'     => $website,
-                'profile_url' => $profile_url,
-                'photo_url'   => $photo_url,
-            ];
-
-            if (str_contains($role, 'Senator')) {
-                $senators[] = $person;
-            } else {
-                $representatives[] = $person;
-            }
-        }
-
-        return [
-            'senators'        => $senators,
-            'representatives' => $representatives,
-        ];
-    }
-}
-
-/** Look up and display congressional representatives for the given street address. */
 if (!function_exists('main')) {
     function main(string $address): void
     {
+        $api_key = getenv('CD_API_KEY');
+        if ($api_key === false || $api_key === '') {
+            throw new RuntimeException('CD_API_KEY environment variable is not set');
+        }
+
         [$state, $district] = get_district($address);
-        $html = fetch_html(district_page_url($state, $district));
-        $reps = parse_reps($html);
+        $reps = fetch_members($state, $district, $api_key);
         print_r($reps);
     }
 }
