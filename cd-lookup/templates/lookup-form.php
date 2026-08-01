@@ -189,7 +189,7 @@
         if (!people.length) return '';
         const items = people.map(p =>
             `<li class="cdl-person">
-                ${p.photo_url ? `<img src="https://www.govtrack.us${p.photo_url}" alt="${p.full_name}" width="80" height="80">` : ''}
+                ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.full_name}" width="80" height="80">` : ''}
                 <div>
                     <p class="cdl-name">${p.full_name}</p>
                     <p class="cdl-role">${p.role}</p>

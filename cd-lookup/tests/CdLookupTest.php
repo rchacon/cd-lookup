@@ -13,9 +13,12 @@ class CdLookupTest extends TestCase
         $GLOBALS['stub_get_district_throws'] = null;
         $GLOBALS['stub_get_district_throws_invalid_address'] = null;
         $GLOBALS['stub_get_district_return'] = null;
-        $GLOBALS['stub_fetch_html_url'] = null;
-        $GLOBALS['stub_fetch_html_calls'] = 0;
+        $GLOBALS['stub_fetch_members_args'] = null;
+        $GLOBALS['stub_fetch_members_calls'] = 0;
+        $GLOBALS['stub_fetch_members_throws'] = null;
+        $GLOBALS['stub_fetch_members_return'] = null;
         $GLOBALS['stub_transients'] = [];
+        $GLOBALS['stub_options'] = ['cd_lookup_api_key' => 'test-api-key'];
     }
 
     private function makeRequest(string $address): WP_REST_Request
@@ -48,26 +51,38 @@ class CdLookupTest extends TestCase
         $this->assertSame('123 Main St, Oakland, CA 94601', $GLOBALS['stub_get_district_args']['address']);
     }
 
-    public function test_fetches_correct_district_page_url(): void
+    public function test_fetches_members_for_the_resolved_state_and_district(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
         $this->assertSame(
-            'https://www.govtrack.us/congress/members/CA/12',
-            $GLOBALS['stub_fetch_html_url']
+            ['state' => 'CA', 'district' => '12', 'api_key' => 'test-api-key'],
+            $GLOBALS['stub_fetch_members_args']
         );
     }
 
-    public function test_fetches_district_page_url_without_district_segment_for_at_large_districts(): void
+    public function test_fetches_members_for_at_large_district(): void
     {
         $GLOBALS['stub_get_district_return'] = ['WY', '0'];
         cd_lookup_get_representatives($this->makeRequest('200 W 24th St, Cheyenne, WY 82002'));
-        $this->assertSame(
-            'https://www.govtrack.us/congress/members/WY',
-            $GLOBALS['stub_fetch_html_url']
-        );
+        $this->assertSame('0', $GLOBALS['stub_fetch_members_args']['district']);
     }
 
-    public function test_response_data_populated_from_parsed_html(): void
+    public function test_missing_api_key_returns_502(): void
+    {
+        $GLOBALS['stub_options'] = [];
+        $result = cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $this->assertSame(502, $result->get_status());
+        $this->assertSame(0, $GLOBALS['stub_fetch_members_calls']);
+    }
+
+    public function test_missing_api_key_response_includes_a_clear_message(): void
+    {
+        $GLOBALS['stub_options'] = [];
+        $data = cd_lookup_get_representatives($this->makeRequest('123 Main St'))->get_data();
+        $this->assertSame('CD Lookup API key is not configured.', $data['message']);
+    }
+
+    public function test_response_data_populated_from_fetched_members(): void
     {
         $data = cd_lookup_get_representatives($this->makeRequest('123 Main St'))->get_data();
         $this->assertNotEmpty($data['senators']);
@@ -137,24 +152,31 @@ class CdLookupTest extends TestCase
         $this->assertSame(1, $GLOBALS['stub_get_district_calls']);
     }
 
-    public function test_second_request_for_same_district_reuses_cached_html(): void
+    public function test_second_request_for_same_district_reuses_cached_members(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
-        $this->assertSame(1, $GLOBALS['stub_fetch_html_calls']);
+        $this->assertSame(1, $GLOBALS['stub_fetch_members_calls']);
     }
 
-    public function test_request_for_a_different_district_does_not_reuse_the_html_cache(): void
+    public function test_request_for_a_different_district_does_not_reuse_the_members_cache(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
         $GLOBALS['stub_get_district_return'] = ['WY', '0'];
         cd_lookup_get_representatives($this->makeRequest('200 W 24th St, Cheyenne, WY 82002'));
-        $this->assertSame(2, $GLOBALS['stub_fetch_html_calls']);
+        $this->assertSame(2, $GLOBALS['stub_fetch_members_calls']);
     }
 
-    public function test_no_cached_html_fetches_a_new_one(): void
+    public function test_no_cached_members_fetches_new_ones(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
-        $this->assertSame(1, $GLOBALS['stub_fetch_html_calls']);
+        $this->assertSame(1, $GLOBALS['stub_fetch_members_calls']);
+    }
+
+    public function test_response_has_no_profile_url_field(): void
+    {
+        $data = cd_lookup_get_representatives($this->makeRequest('123 Main St'))->get_data();
+        $this->assertArrayNotHasKey('profile_url', $data['senators'][0]);
+        $this->assertArrayNotHasKey('profile_url', $data['representatives'][0]);
     }
 }

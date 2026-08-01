@@ -31,6 +31,64 @@ if (!function_exists('wp_create_nonce')) {
         return 'test_nonce';
     }
 }
+if (!function_exists('get_option')) {
+    function get_option(string $key, mixed $default = false): mixed
+    {
+        return $GLOBALS['stub_options'][$key] ?? $default;
+    }
+}
+if (!function_exists('update_option')) {
+    function update_option(string $key, mixed $value): bool
+    {
+        $GLOBALS['stub_options'][$key] = $value;
+        return true;
+    }
+}
+if (!function_exists('sanitize_text_field')) {
+    function sanitize_text_field(string $value): string
+    {
+        return trim($value);
+    }
+}
+if (!function_exists('esc_attr')) {
+    function esc_attr(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    }
+}
+if (!function_exists('add_options_page')) {
+    function add_options_page(string $page_title, string $menu_title, string $capability, string $menu_slug, callable $callback): void {}
+}
+if (!function_exists('register_setting')) {
+    function register_setting(string $option_group, string $option_name, array $args = []): void
+    {
+        $GLOBALS['stub_registered_settings'][$option_name] = $args;
+    }
+}
+if (!function_exists('add_settings_section')) {
+    function add_settings_section(string $id, string $title, callable $callback, string $page): void {}
+}
+if (!function_exists('add_settings_field')) {
+    function add_settings_field(string $id, string $title, callable $callback, string $page, string $section = 'default'): void
+    {
+        $GLOBALS['stub_settings_fields'][$id] = $callback;
+    }
+}
+if (!function_exists('settings_fields')) {
+    function settings_fields(string $option_group): void {}
+}
+if (!function_exists('do_settings_sections')) {
+    function do_settings_sections(string $page): void {}
+}
+if (!function_exists('submit_button')) {
+    function submit_button(): void {}
+}
+if (!function_exists('__return_false')) {
+    function __return_false(): bool
+    {
+        return false;
+    }
+}
 if (!defined('DAY_IN_SECONDS')) {
     define('DAY_IN_SECONDS', 24 * 60 * 60);
 }
@@ -96,9 +154,33 @@ function get_district(string $address): array
     return $GLOBALS['stub_get_district_return'] ?? ['CA', '12'];
 }
 
-function fetch_html(string $url): string
+function fetch_members(string $state, string $district, string $api_key): array
 {
-    $GLOBALS['stub_fetch_html_calls'] = ($GLOBALS['stub_fetch_html_calls'] ?? 0) + 1;
-    $GLOBALS['stub_fetch_html_url'] = $url;
-    return file_get_contents(__DIR__ . '/data/12th_congressional_district.html');
+    $GLOBALS['stub_fetch_members_calls'] = ($GLOBALS['stub_fetch_members_calls'] ?? 0) + 1;
+    $GLOBALS['stub_fetch_members_args'] = ['state' => $state, 'district' => $district, 'api_key' => $api_key];
+    if (!empty($GLOBALS['stub_fetch_members_throws'])) {
+        throw new RuntimeException($GLOBALS['stub_fetch_members_throws']);
+    }
+    return $GLOBALS['stub_fetch_members_return'] ?? [
+        'senators' => [
+            [
+                'full_name' => 'Jane Senator',
+                'role'      => 'Senator',
+                'party'     => 'Democratic',
+                'phone'     => '(202) 224-0000',
+                'website'   => 'https://senator.senate.gov',
+                'photo_url' => 'https://www.congress.gov/img/member/s000001_200.jpg',
+            ],
+        ],
+        'representatives' => [
+            [
+                'full_name' => 'John Representative',
+                'role'      => 'Representative',
+                'party'     => 'Republican',
+                'phone'     => '(202) 225-0000',
+                'website'   => 'https://representative.house.gov',
+                'photo_url' => 'https://www.congress.gov/img/member/r000001_200.jpg',
+            ],
+        ],
+    ];
 }

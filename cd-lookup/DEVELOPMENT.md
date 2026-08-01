@@ -10,30 +10,33 @@ composer install
 
 # Usage:
 
+Requires a cd-platform API key in `CD_API_KEY` (the CLI has no access to
+WordPress's stored option, since it runs outside a WP request):
+
 ```
-$ php src/LookupDistrict.php "225 Baker St NW, Atlanta, GA 30313"
+$ CD_API_KEY=<your key> php src/LookupDistrict.php "225 Baker St NW, Atlanta, GA 30313"
 Array
 (
     [senators] => Array
         (
             [0] => Array
                 (
-                    [full_name] => Jon Ossoff
-                    [role] => Senior Senator for Georgia
-                    [party] => Democrat
-                    [phone] => 202-224-3521
-                    [website] => https://www.ossoff.senate.gov
-                    [profile_url] => /congress/members/jon_ossoff/456857
+                    [full_name] => Raphael Warnock
+                    [role] => Senator
+                    [party] => DEMOCRATIC
+                    [phone] => (202) 224-3643
+                    [website] => https://www.warnock.senate.gov
+                    [photo_url] => https://www.congress.gov/img/member/w000790_200.jpg
                 )
 
             [1] => Array
                 (
-                    [full_name] => Raphael Warnock
-                    [role] => Junior Senator for Georgia
-                    [party] => Democrat
-                    [phone] => 202-224-3643
-                    [website] => https://www.warnock.senate.gov
-                    [profile_url] => /congress/members/raphael_warnock/456858
+                    [full_name] => Jon Ossoff
+                    [role] => Senator
+                    [party] => DEMOCRATIC
+                    [phone] => (202) 224-3521
+                    [website] => https://www.ossoff.senate.gov
+                    [photo_url] => https://www.congress.gov/img/member/o000174_200.jpg
                 )
 
         )
@@ -43,11 +46,11 @@ Array
             [0] => Array
                 (
                     [full_name] => Nikema Williams
-                    [role] => Representative for Georgia's 5th congressional district
-                    [party] => Democrat
-                    [phone] => 202-225-3801
+                    [role] => Representative
+                    [party] => DEMOCRATIC
+                    [phone] => (202) 225-3801
                     [website] => https://nikemawilliams.house.gov
-                    [profile_url] => /congress/members/nikema_williams/456811
+                    [photo_url] => https://www.congress.gov/img/member/w000788_200.jpg
                 )
 
         )
