@@ -21,7 +21,11 @@ Array
         (
             [0] => Array
                 (
-                    [full_name] => Raphael Warnock
+                    [first_name] => Raphael
+                    [middle_name] =>
+                    [last_name] => Warnock
+                    [nickname] =>
+                    [suffix] =>
                     [role] => Senator
                     [party] => DEMOCRATIC
                     [phone] => (202) 224-3643
@@ -31,7 +35,11 @@ Array
 
             [1] => Array
                 (
-                    [full_name] => Jon Ossoff
+                    [first_name] => Jon
+                    [middle_name] =>
+                    [last_name] => Ossoff
+                    [nickname] =>
+                    [suffix] =>
                     [role] => Senator
                     [party] => DEMOCRATIC
                     [phone] => (202) 224-3521
@@ -45,7 +53,11 @@ Array
         (
             [0] => Array
                 (
-                    [full_name] => Nikema Williams
+                    [first_name] => Nikema
+                    [middle_name] =>
+                    [last_name] => Williams
+                    [nickname] =>
+                    [suffix] =>
                     [role] => Representative
                     [party] => DEMOCRATIC
                     [phone] => (202) 225-3801
