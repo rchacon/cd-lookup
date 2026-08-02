@@ -40,7 +40,9 @@ if (!function_exists('curl_get')) {
 /**
  * Fetch senators/representatives for a state (and optional district) from
  * cd-platform's cd-api. Returns ['senators' => [...], 'representatives' => [...]],
- * each person an array with keys: full_name, role, party, phone, website, photo_url.
+ * each person an array with keys: role, party, phone, website, photo_url, plus
+ * either full_name (older cd-api deploys) or first_name/middle_name/last_name/
+ * nickname/suffix (current cd-api) -- see cd_lookup_display_name().
  *
  * No retry/backoff on failure -- a single attempt only, same convention the
  * old govtrack.us fetch followed (see cd-lookup#8).

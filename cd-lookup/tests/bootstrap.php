@@ -164,22 +164,24 @@ function fetch_members(string $state, string $district, string $api_key, string 
     return $GLOBALS['stub_fetch_members_return'] ?? [
         'senators' => [
             [
-                'full_name' => 'Jane Senator',
-                'role'      => 'Senator',
-                'party'     => 'Democratic',
-                'phone'     => '(202) 224-0000',
-                'website'   => 'https://senator.senate.gov',
-                'photo_url' => 'https://www.congress.gov/img/member/s000001_200.jpg',
+                'first_name' => 'Jane',
+                'last_name'  => 'Senator',
+                'role'       => 'Senator',
+                'party'      => 'Democratic',
+                'phone'      => '(202) 224-0000',
+                'website'    => 'https://senator.senate.gov',
+                'photo_url'  => 'https://www.congress.gov/img/member/s000001_200.jpg',
             ],
         ],
         'representatives' => [
             [
-                'full_name' => 'John Representative',
-                'role'      => 'Representative',
-                'party'     => 'Republican',
-                'phone'     => '(202) 225-0000',
-                'website'   => 'https://representative.house.gov',
-                'photo_url' => 'https://www.congress.gov/img/member/r000001_200.jpg',
+                'first_name' => 'John',
+                'last_name'  => 'Representative',
+                'role'       => 'Representative',
+                'party'      => 'Republican',
+                'phone'      => '(202) 225-0000',
+                'website'    => 'https://representative.house.gov',
+                'photo_url'  => 'https://www.congress.gov/img/member/r000001_200.jpg',
             ],
         ],
     ];

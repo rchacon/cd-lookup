@@ -145,13 +145,41 @@ function cd_lookup_sanitize_reps( array $reps ): array {
 
 function cd_lookup_sanitize_person( array $person ): array {
     return [
-        'full_name' => htmlspecialchars( $person['full_name'] ?? '', ENT_QUOTES, 'UTF-8' ),
-        'role'      => htmlspecialchars( $person['role'] ?? '', ENT_QUOTES, 'UTF-8' ),
-        'party'     => htmlspecialchars( $person['party'] ?? '', ENT_QUOTES, 'UTF-8' ),
-        'phone'     => cd_lookup_sanitize_phone( $person['phone'] ?? '' ),
-        'website'   => cd_lookup_sanitize_url( $person['website'] ?? '' ),
-        'photo_url' => cd_lookup_sanitize_url( $person['photo_url'] ?? '' ),
+        'display_name' => htmlspecialchars( cd_lookup_display_name( $person ), ENT_QUOTES, 'UTF-8' ),
+        'role'         => htmlspecialchars( $person['role'] ?? '', ENT_QUOTES, 'UTF-8' ),
+        'party'        => htmlspecialchars( $person['party'] ?? '', ENT_QUOTES, 'UTF-8' ),
+        'phone'        => cd_lookup_sanitize_phone( $person['phone'] ?? '' ),
+        'website'      => cd_lookup_sanitize_url( $person['website'] ?? '' ),
+        'photo_url'    => cd_lookup_sanitize_url( $person['photo_url'] ?? '' ),
     ];
+}
+
+/**
+ * cd-api used to derive a single `full_name` field itself; it now sends raw
+ * name parts (`first_name`, `middle_name`, `last_name`, `nickname`, `suffix`)
+ * and leaves display-name derivation to the client. Prefer `full_name` when
+ * an older cd-api deploy still sends it, so this plugin works against both
+ * versions; fall back to deriving it here the same way cd-api used to.
+ *
+ * TODO: drop the `full_name` branch and this whole derivation, once every
+ * deployed cd-api is confirmed to only send the raw name parts.
+ */
+function cd_lookup_display_name( array $person ): string {
+    if ( isset( $person['full_name'] ) ) {
+        return $person['full_name'];
+    }
+
+    if ( ! empty( $person['nickname'] ) ) {
+        return trim( $person['nickname'] . ' ' . ( $person['last_name'] ?? '' ) );
+    }
+
+    $parts = array_filter(
+        [ $person['first_name'] ?? null, $person['middle_name'] ?? null, $person['last_name'] ?? null ],
+        fn ( $part ) => $part !== null && $part !== ''
+    );
+    $name = implode( ' ', $parts );
+
+    return ! empty( $person['suffix'] ) ? "{$name} {$person['suffix']}" : $name;
 }
 
 /** Strip everything but digits and common phone punctuation before it's used in a tel: link. */

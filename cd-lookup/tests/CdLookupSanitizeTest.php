@@ -18,6 +18,25 @@ class CdLookupSanitizeTest extends TestCase
         ], $overrides);
     }
 
+    /** A person as current cd-api sends it: no full_name, just raw name parts. */
+    private function personWithoutFullName(array $overrides = []): array
+    {
+        $person = array_merge([
+            'role'        => 'Representative',
+            'party'       => 'Independent',
+            'phone'       => '202-225-2661',
+            'website'     => 'https://example.gov',
+            'photo_url'   => 'https://www.congress.gov/img/member/1-200.jpg',
+            'first_name'  => 'Maria',
+            'middle_name' => null,
+            'last_name'   => 'Cantwell',
+            'nickname'    => null,
+            'suffix'      => null,
+        ], $overrides);
+        unset($person['full_name']);
+        return $person;
+    }
+
     public function test_sanitize_reps_maps_senators_and_representatives(): void
     {
         $reps = ['senators' => [$this->person()], 'representatives' => [$this->person()]];
@@ -30,14 +49,65 @@ class CdLookupSanitizeTest extends TestCase
     {
         $person = $this->person(['full_name' => '<img src=x onerror=alert(1)>']);
         $sanitized = cd_lookup_sanitize_person($person);
-        $this->assertSame('&lt;img src=x onerror=alert(1)&gt;', $sanitized['full_name']);
+        $this->assertSame('&lt;img src=x onerror=alert(1)&gt;', $sanitized['display_name']);
     }
 
     public function test_sanitize_person_escapes_quotes_that_could_break_out_of_an_attribute(): void
     {
         $person = $this->person(['full_name' => 'Jane" onerror="alert(1)']);
         $sanitized = cd_lookup_sanitize_person($person);
-        $this->assertSame('Jane&quot; onerror=&quot;alert(1)', $sanitized['full_name']);
+        $this->assertSame('Jane&quot; onerror=&quot;alert(1)', $sanitized['display_name']);
+    }
+
+    public function test_sanitize_person_uses_full_name_when_cd_api_still_sends_it(): void
+    {
+        // Backward compat with an older cd-api deploy that still derives
+        // full_name itself.
+        $person = $this->person(['full_name' => 'Jane Doe']);
+        $sanitized = cd_lookup_sanitize_person($person);
+        $this->assertSame('Jane Doe', $sanitized['display_name']);
+    }
+
+    public function test_sanitize_person_derives_display_name_when_full_name_absent(): void
+    {
+        $person = $this->personWithoutFullName();
+        $sanitized = cd_lookup_sanitize_person($person);
+        $this->assertSame('Maria Cantwell', $sanitized['display_name']);
+    }
+
+    public function test_sanitize_person_derivation_includes_middle_name_when_present(): void
+    {
+        $person = $this->personWithoutFullName(['middle_name' => 'E.']);
+        $sanitized = cd_lookup_sanitize_person($person);
+        $this->assertSame('Maria E. Cantwell', $sanitized['display_name']);
+    }
+
+    public function test_sanitize_person_derivation_includes_suffix_when_present(): void
+    {
+        $person = $this->personWithoutFullName(['suffix' => 'III']);
+        $sanitized = cd_lookup_sanitize_person($person);
+        $this->assertSame('Maria Cantwell III', $sanitized['display_name']);
+    }
+
+    public function test_sanitize_person_derivation_prefers_nickname_over_first_and_middle_name(): void
+    {
+        $person = $this->personWithoutFullName(['middle_name' => 'E.', 'nickname' => 'Cindy']);
+        $sanitized = cd_lookup_sanitize_person($person);
+        $this->assertSame('Cindy Cantwell', $sanitized['display_name']);
+    }
+
+    public function test_sanitize_person_derivation_nickname_takes_precedence_over_suffix(): void
+    {
+        $person = $this->personWithoutFullName(['nickname' => 'Cindy', 'suffix' => 'III']);
+        $sanitized = cd_lookup_sanitize_person($person);
+        $this->assertSame('Cindy Cantwell', $sanitized['display_name']);
+    }
+
+    public function test_sanitize_person_escapes_html_in_derived_display_name(): void
+    {
+        $person = $this->personWithoutFullName(['last_name' => '<img src=x onerror=alert(1)>']);
+        $sanitized = cd_lookup_sanitize_person($person);
+        $this->assertSame('Maria &lt;img src=x onerror=alert(1)&gt;', $sanitized['display_name']);
     }
 
     public function test_sanitize_person_escapes_role_and_party(): void

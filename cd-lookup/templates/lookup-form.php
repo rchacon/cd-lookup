@@ -192,9 +192,9 @@
                 ? `${p.role} for the ${ordinal(district)} congressional district`
                 : p.role;
             return `<li class="cdl-person">
-                ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.full_name}" width="80" height="80">` : ''}
+                ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.display_name}" width="80" height="80">` : ''}
                 <div>
-                    <p class="cdl-name">${p.full_name}</p>
+                    <p class="cdl-name">${p.display_name}</p>
                     <p class="cdl-role">${role}</p>
                     <p class="cdl-meta">
                         <span class="cdl-party">${p.party}</span>
