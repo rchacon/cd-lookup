@@ -33,7 +33,7 @@
         #cd-lookup-address {
             box-sizing: border-box;
             width: 100%;
-            padding: .7em .9em;
+            padding: .45em .9em;
             font-size: 1em;
             border: 1px solid rgba(38, 51, 105, .25);
             border-radius: var(--cdl-radius);
@@ -45,7 +45,7 @@
         #cd-lookup-form button {
             box-sizing: border-box;
             flex: none;
-            padding: .7em 1.8em;
+            padding: .45em 1.8em;
             font-size: 1em;
             font-weight: 600;
             letter-spacing: .06em;
