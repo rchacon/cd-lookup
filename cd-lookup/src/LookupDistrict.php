@@ -1,7 +1,7 @@
 <?php
 
 const CENSUS_GEOCODER_ENDPOINT = 'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress';
-const CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT = 'https://lix3lbjjkl.execute-api.us-west-2.amazonaws.com/prod/members';
+const CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT = 'https://api.civicdog.com/v1/members';
 
 /** A problem with the address itself (no match or too ambiguous to resolve) rather than a geocoder/network failure. */
 if (!class_exists('InvalidAddressException')) {
