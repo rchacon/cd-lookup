@@ -33,7 +33,7 @@
         #cd-lookup-address {
             box-sizing: border-box;
             width: 100%;
-            padding: .7em .9em;
+            padding: .45em .9em;
             font-size: 1em;
             border: 1px solid rgba(38, 51, 105, .25);
             border-radius: var(--cdl-radius);
@@ -43,21 +43,28 @@
             border-color: var(--cdl-navy);
         }
         #cd-lookup-form button {
+            box-sizing: border-box;
             flex: none;
-            padding: .8em 1.8em;
+            padding: .45em 1.1em;
+            font-family: 'Public Sans', Arial, sans-serif;
+            font-size: 1em;
             font-weight: 600;
-            letter-spacing: .06em;
+            letter-spacing: .065em;
             text-transform: uppercase;
             color: #fff;
-            background: var(--cdl-green);
-            border: 0;
+            background: var(--cdl-navy);
+            border: 1px solid transparent;
             border-radius: var(--cdl-btn-radius);
             cursor: pointer;
             white-space: nowrap;
-            transition: background .3s ease-in-out, transform .3s ease-in-out, box-shadow .3s ease-in-out;
+            transition: background .3s ease-in-out, color .3s ease-in-out, transform .3s ease-in-out, box-shadow .3s ease-in-out;
+        }
+        #cd-lookup-form button .cdl-btn-text {
+            font-size: .65em;
         }
         #cd-lookup-form button:hover {
-            background: var(--cdl-navy);
+            background: #d1d7ed;
+            color: var(--cdl-navy);
             transform: translateY(-1px);
             box-shadow: 0 5px 10px rgba(0, 0, 0, .15);
         }
@@ -100,12 +107,14 @@
             color: #555;
         }
         .cdl-person .cdl-meta {
+            display: flex;
+            align-items: center;
+            gap: .6em;
             margin: 0;
             font-size: .9em;
         }
         .cdl-person .cdl-party {
             display: inline-block;
-            margin-right: .5em;
             padding: .2em .6em;
             font-size: .75em;
             font-weight: 600;
@@ -122,11 +131,18 @@
         .cdl-person a:hover {
             color: var(--cdl-navy);
         }
+        .cdl-icon-link {
+            display: inline-flex;
+        }
+        .cdl-icon-link svg {
+            width: 16px;
+            height: 16px;
+        }
     </style>
 
     <form id="cd-lookup-form">
         <div class="cdl-field">
-            <label for="cd-lookup-address">Street Address</label>
+            <label for="cd-lookup-address">Find Your Representative</label>
             <input
                 type="text"
                 id="cd-lookup-address"
@@ -135,7 +151,7 @@
                 required
             >
         </div>
-        <button type="submit">Look Up Representatives</button>
+        <button type="submit"><span class="cdl-btn-text">Search</span></button>
     </form>
 
     <div id="cd-lookup-results" hidden></div>
@@ -180,6 +196,11 @@
         }
     });
 
+    // Feather icons (MIT licensed, https://feathericons.com), inlined so the
+    // widget stays self-contained -- no icon font/sprite request.
+    const PHONE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>';
+    const GLOBE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>';
+
     function renderResults(data) {
         return renderGroup('Senators', data.senators)
              + renderGroup('Representatives', data.representatives, data.district);
@@ -198,8 +219,8 @@
                     <p class="cdl-role">${role}</p>
                     <p class="cdl-meta">
                         <span class="cdl-party">${p.party}</span>
-                        ${p.phone ? `<a href="tel:${p.phone}">${p.phone}</a>` : ''}
-                        ${p.website ? `&bull; <a href="${p.website}">${p.website}</a>` : ''}
+                        ${p.phone ? `<a class="cdl-icon-link" href="tel:${p.phone}" aria-label="Call ${p.phone}" title="${p.phone}">${PHONE_ICON}</a>` : ''}
+                        ${p.website ? `<a class="cdl-icon-link" href="${p.website}" aria-label="Visit website" title="${p.website}">${GLOBE_ICON}</a>` : ''}
                     </p>
                 </div>
             </li>`;
