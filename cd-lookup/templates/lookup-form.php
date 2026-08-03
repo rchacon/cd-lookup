@@ -144,7 +144,7 @@
                 required
             >
         </div>
-        <button type="submit">Look Up Representatives</button>
+        <button type="submit">Search</button>
     </form>
 
     <div id="cd-lookup-results" hidden></div>
