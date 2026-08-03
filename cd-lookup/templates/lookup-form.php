@@ -45,7 +45,7 @@
         #cd-lookup-form button {
             box-sizing: border-box;
             flex: none;
-            padding: .45em 1.8em;
+            padding: .45em 1.1em;
             font-size: 1em;
             font-weight: 600;
             letter-spacing: .06em;
