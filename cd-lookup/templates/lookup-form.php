@@ -46,20 +46,22 @@
             box-sizing: border-box;
             flex: none;
             padding: .45em 1.1em;
+            font-family: 'Public Sans', Arial, sans-serif;
             font-size: 1em;
             font-weight: 600;
-            letter-spacing: .06em;
+            letter-spacing: .065em;
             text-transform: uppercase;
             color: #fff;
-            background: var(--cdl-green);
+            background: var(--cdl-navy);
             border: 1px solid transparent;
             border-radius: var(--cdl-btn-radius);
             cursor: pointer;
             white-space: nowrap;
-            transition: background .3s ease-in-out, transform .3s ease-in-out, box-shadow .3s ease-in-out;
+            transition: background .3s ease-in-out, color .3s ease-in-out, transform .3s ease-in-out, box-shadow .3s ease-in-out;
         }
         #cd-lookup-form button:hover {
-            background: var(--cdl-navy);
+            background: #d1d7ed;
+            color: var(--cdl-navy);
             transform: translateY(-1px);
             box-shadow: 0 5px 10px rgba(0, 0, 0, .15);
         }
