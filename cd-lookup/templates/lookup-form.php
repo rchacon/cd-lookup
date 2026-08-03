@@ -59,6 +59,9 @@
             white-space: nowrap;
             transition: background .3s ease-in-out, color .3s ease-in-out, transform .3s ease-in-out, box-shadow .3s ease-in-out;
         }
+        #cd-lookup-form button .cdl-btn-text {
+            font-size: .65em;
+        }
         #cd-lookup-form button:hover {
             background: #d1d7ed;
             color: var(--cdl-navy);
@@ -148,7 +151,7 @@
                 required
             >
         </div>
-        <button type="submit">Search</button>
+        <button type="submit"><span class="cdl-btn-text">Search</span></button>
     </form>
 
     <div id="cd-lookup-results" hidden></div>
