@@ -43,14 +43,16 @@
             border-color: var(--cdl-navy);
         }
         #cd-lookup-form button {
+            box-sizing: border-box;
             flex: none;
-            padding: .8em 1.8em;
+            padding: .7em 1.8em;
+            font-size: 1em;
             font-weight: 600;
             letter-spacing: .06em;
             text-transform: uppercase;
             color: #fff;
             background: var(--cdl-green);
-            border: 0;
+            border: 1px solid transparent;
             border-radius: var(--cdl-btn-radius);
             cursor: pointer;
             white-space: nowrap;
