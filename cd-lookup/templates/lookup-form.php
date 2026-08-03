@@ -135,7 +135,7 @@
 
     <form id="cd-lookup-form">
         <div class="cdl-field">
-            <label for="cd-lookup-address">Street Address</label>
+            <label for="cd-lookup-address">Find Your Representative</label>
             <input
                 type="text"
                 id="cd-lookup-address"

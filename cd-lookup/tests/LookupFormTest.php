@@ -34,7 +34,7 @@ class LookupFormTest extends TestCase
     {
         $label = $this->xpath->query('//label[@for="cd-lookup-address"]')->item(0);
         $this->assertNotNull($label);
-        $this->assertSame('Street Address', trim($label->textContent));
+        $this->assertSame('Find Your Representative', trim($label->textContent));
     }
 
     public function test_address_input_attributes(): void
