@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Blocks pushing a v* tag whose version doesn't match cd-lookup/cd-lookup.php's
+# Version: header, catching the mismatch before the wp-release workflow does.
+# Enable with: git config core.hooksPath .githooks
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+while read -r local_ref local_sha _remote_ref _remote_sha; do
+  case "$local_ref" in
+    refs/tags/v*)
+      tag_name="${local_ref#refs/tags/}"
+      "$repo_root/scripts/check-tag-version.sh" "$tag_name" v cd-lookup/cd-lookup.php "$local_sha"
+      ;;
+  esac
+done

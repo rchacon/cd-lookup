@@ -20,6 +20,17 @@ vendor/bin/phpunit tests/LookupDistrictTest.php
 CD_API_KEY=<key> php src/LookupDistrict.php "225 Baker St NW, Atlanta, GA 30313"
 ```
 
+## One-time setup
+
+```bash
+git config core.hooksPath .githooks  # optional: catches a v* tag/cd-lookup.php
+                                      # Version: header mismatch before CI does.
+                                      # Repoints ALL git hooks to .githooks, so
+                                      # skip this if you use another hooks
+                                      # framework (husky, lefthook, pre-commit,
+                                      # etc.)
+```
+
 ## Architecture
 
 This is a WordPress plugin that looks up U.S. congressional representatives by street address: the district number comes from the Census Bureau's geocoder, and the representative/senator details come from [cd-platform](https://github.com/rchacon/cd-platform)'s `cd-api`, not from scraping a third-party site.

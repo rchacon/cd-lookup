@@ -13,10 +13,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check tag version matches plugin header
+        id: version
+        run: scripts/check-tag-version.sh "$GITHUB_REF_NAME" v cd-lookup/cd-lookup.php
+
       - name: Build plugin zip
         working-directory: cd-lookup
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ steps.version.outputs.version }}"
           mkdir -p /tmp/build/cd-lookup
           cp -r cd-lookup.php src templates README.md /tmp/build/cd-lookup/
           cd /tmp/build
@@ -27,6 +31,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            "cd-lookup-${GITHUB_REF_NAME#v}.zip" \
+            "cd-lookup-${{ steps.version.outputs.version }}.zip" \
             --title "$GITHUB_REF_NAME" \
             --generate-notes
