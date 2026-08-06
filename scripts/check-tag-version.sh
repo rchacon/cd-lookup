@@ -16,7 +16,13 @@ plugin_header_path="$3"
 git_ref="${4:-HEAD}"
 
 tag_version="${tag_name#"$tag_prefix"}"
-plugin_version=$(git show "${git_ref}:${plugin_header_path}" | sed -n 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -n1)
+
+if ! plugin_header_content=$(git show "${git_ref}:${plugin_header_path}" 2>&1); then
+  echo "error: could not read ${plugin_header_path} at ${git_ref}: ${plugin_header_content}" >&2
+  exit 1
+fi
+
+plugin_version=$(echo "$plugin_header_content" | sed -n 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*\([^[:space:]]*\).*/\1/p' | head -n1)
 
 if [ -z "$plugin_version" ]; then
   echo "error: could not find a 'Version:' header line in ${plugin_header_path} (at ${git_ref})" >&2
