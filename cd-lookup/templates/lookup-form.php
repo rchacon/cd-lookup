@@ -186,7 +186,7 @@
             });
 
             if (!response.ok) {
-                throw new Error('Request failed: ' + response.status);
+                throw new Error(await errorMessageFromResponse(response));
             }
 
             const data = await response.json();
@@ -195,6 +195,22 @@
             results.innerHTML = '<p>Error: ' + err.message + '</p>';
         }
     });
+
+    // Extracts the backend's own explanation of what went wrong (e.g. an
+    // unmatchable address) so the user sees more than just an HTTP status
+    // code -- falls back to a generic message if the body isn't JSON or
+    // doesn't include one (e.g. a network-level failure).
+    async function errorMessageFromResponse(response) {
+        try {
+            const data = await response.json();
+            if (data && typeof data.message === 'string' && data.message) {
+                return data.message;
+            }
+        } catch (err) {
+            // Response body wasn't JSON (or was empty) -- fall through to the generic message.
+        }
+        return 'Something went wrong, please try again. (HTTP ' + response.status + ')';
+    }
 
     // Feather icons (MIT licensed, https://feathericons.com), inlined so the
     // widget stays self-contained -- no icon font/sprite request.

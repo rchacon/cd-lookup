@@ -175,9 +175,27 @@ class CdLookupTest extends TestCase
         $GLOBALS['stub_get_district_throws_invalid_address'] = 'Census geocoder found no address match for "not a real address"';
         $data = cd_lookup_get_representatives($this->makeRequest('not a real address'))->get_data();
         $this->assertSame(
-            'Census geocoder found no address match for "not a real address"',
+            'Census geocoder found no address match for &quot;not a real address&quot;',
             $data['message']
         );
+    }
+
+    public function test_error_message_is_escaped_for_html_special_characters(): void
+    {
+        $GLOBALS['stub_get_district_throws_invalid_address'] = 'No match for "<script>alert(1)</script> & friends"';
+        $data = cd_lookup_get_representatives($this->makeRequest('<script>alert(1)</script>'))->get_data();
+        $this->assertSame(
+            'No match for &quot;&lt;script&gt;alert(1)&lt;/script&gt; &amp; friends&quot;',
+            $data['message']
+        );
+    }
+
+    public function test_error_message_with_malformed_utf8_is_not_silently_blanked(): void
+    {
+        $GLOBALS['stub_get_district_throws_invalid_address'] = "No match for \"123 \xB1\x31 Ave\"";
+        $data = cd_lookup_get_representatives($this->makeRequest('123 invalid-utf8 Ave'))->get_data();
+        $this->assertNotSame('', $data['message']);
+        $this->assertStringContainsString('No match for', $data['message']);
     }
 
     public function test_second_request_for_same_address_reuses_cached_district(): void

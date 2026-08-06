@@ -87,6 +87,32 @@ class LookupFormTest extends TestCase
         $this->assertStringContainsString("'Content-Type': 'application/json'", $this->output);
     }
 
+    public function test_script_defines_error_message_from_response_function(): void
+    {
+        $this->assertStringContainsString('function errorMessageFromResponse(', $this->output);
+    }
+
+    public function test_script_throws_the_backend_error_message_on_non_ok_response(): void
+    {
+        $this->assertStringContainsString(
+            'throw new Error(await errorMessageFromResponse(response));',
+            $this->output
+        );
+    }
+
+    public function test_script_reads_message_from_the_json_response_body(): void
+    {
+        $this->assertStringContainsString('data.message', $this->output);
+    }
+
+    public function test_script_falls_back_to_a_generic_error_message_including_the_http_status(): void
+    {
+        $this->assertStringContainsString(
+            "'Something went wrong, please try again. (HTTP ' + response.status + ')'",
+            $this->output
+        );
+    }
+
     public function test_script_defines_render_results_function(): void
     {
         $this->assertStringContainsString('function renderResults(', $this->output);
