@@ -103,13 +103,16 @@ class LookupFormTest extends TestCase
         $this->assertStringContainsString('data.representatives', $this->output);
     }
 
-    public function test_script_passes_district_only_to_the_representatives_group(): void
+    public function test_script_passes_state_name_and_district_to_the_representatives_group(): void
     {
         $this->assertStringContainsString(
-            "renderGroup('Representatives', data.representatives, data.district)",
+            "renderGroup('Representatives', data.representatives, data.state_name, data.district)",
             $this->output
         );
-        $this->assertStringContainsString("renderGroup('Senators', data.senators)", $this->output);
+        $this->assertStringContainsString(
+            "renderGroup('Senators', data.senators, data.state_name)",
+            $this->output
+        );
     }
 
     public function test_script_defines_ordinal_function(): void
@@ -123,6 +126,30 @@ class LookupFormTest extends TestCase
             'for the ${ordinal(district)} congressional district',
             $this->output
         );
-        $this->assertStringContainsString("district && district !== '0'", $this->output);
+        $this->assertStringContainsString("district !== '0'", $this->output);
+    }
+
+    public function test_script_renders_senator_role_with_state_name(): void
+    {
+        $this->assertStringContainsString(
+            '${p.role} of ${stateName}',
+            $this->output
+        );
+    }
+
+    public function test_script_renders_representative_role_with_state_name_and_district(): void
+    {
+        $this->assertStringContainsString(
+            "\${p.role} for \${stateName}'s \${ordinal(district)} congressional district",
+            $this->output
+        );
+    }
+
+    public function test_script_renders_at_large_representative_role_with_state_name(): void
+    {
+        $this->assertStringContainsString(
+            'role = `${p.role} for ${stateName}`;',
+            $this->output
+        );
     }
 }

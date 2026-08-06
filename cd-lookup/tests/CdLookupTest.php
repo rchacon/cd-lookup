@@ -58,6 +58,30 @@ class CdLookupTest extends TestCase
         $this->assertSame('0', $data['district']);
     }
 
+    public function test_response_data_includes_the_resolved_state_name(): void
+    {
+        $data = cd_lookup_get_representatives($this->makeRequest('123 Main St'))->get_data();
+        $this->assertSame('California', $data['state_name']);
+    }
+
+    public function test_response_data_includes_state_name_for_at_large_district(): void
+    {
+        $GLOBALS['stub_get_district_return'] = ['WY', '0'];
+        $data = cd_lookup_get_representatives($this->makeRequest('200 W 24th St, Cheyenne, WY 82002'))->get_data();
+        $this->assertSame('Wyoming', $data['state_name']);
+    }
+
+    public function test_response_data_state_name_is_null_for_unrecognized_state_abbreviation(): void
+    {
+        $GLOBALS['stub_get_district_return'] = ['ZZ', '1'];
+        $result = cd_lookup_get_representatives($this->makeRequest('123 Main St'));
+        $data = $result->get_data();
+        $this->assertSame(200, $result->get_status());
+        $this->assertNull($data['state_name']);
+        $this->assertNotEmpty($data['senators']);
+        $this->assertNotEmpty($data['representatives']);
+    }
+
     public function test_passes_address_from_request_to_get_district(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St, Oakland, CA 94601'));
