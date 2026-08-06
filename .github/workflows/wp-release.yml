@@ -19,8 +19,9 @@ jobs:
 
       - name: Build plugin zip
         working-directory: cd-lookup
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
           mkdir -p /tmp/build/cd-lookup
           cp -r cd-lookup.php src templates README.md /tmp/build/cd-lookup/
           cd /tmp/build
@@ -29,8 +30,9 @@ jobs:
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            "cd-lookup-${{ steps.version.outputs.version }}.zip" \
+            "cd-lookup-${VERSION}.zip" \
             --title "$GITHUB_REF_NAME" \
             --generate-notes
