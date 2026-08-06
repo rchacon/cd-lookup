@@ -103,7 +103,7 @@
         }
         .cdl-person .cdl-role {
             margin: 0 0 .5em;
-            font-size: .9em;
+            font-size: .8em;
             color: #555;
         }
         .cdl-person .cdl-meta {
