@@ -43,6 +43,10 @@ const CD_LOOKUP_MEMBERS_TTL              = HOUR_IN_SECONDS;
 function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Response {
     $address = $request->get_param( 'address' );
 
+    // ENT_SUBSTITUTE below: without it, htmlspecialchars() returns '' for a
+    // malformed-UTF-8 message (e.g. bad bytes in cd-platform's error
+    // `detail` text) instead of replacement characters, which would make
+    // the frontend treat a real backend error as if none were sent.
     try {
         [ $state, $district ] = cd_lookup_get_district( $address );
 
@@ -54,9 +58,9 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
         $endpoint = get_option( 'cd_lookup_api_endpoint', CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT );
         $members  = cd_lookup_fetch_members( $state, $district, $api_key, $endpoint );
     } catch ( InvalidAddressException $e ) {
-        return new WP_REST_Response( [ 'message' => htmlspecialchars( $e->getMessage(), ENT_QUOTES, 'UTF-8' ) ], 422 );
+        return new WP_REST_Response( [ 'message' => htmlspecialchars( $e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' ) ], 422 );
     } catch ( RuntimeException $e ) {
-        return new WP_REST_Response( [ 'message' => htmlspecialchars( $e->getMessage(), ENT_QUOTES, 'UTF-8' ) ], 502 );
+        return new WP_REST_Response( [ 'message' => htmlspecialchars( $e->getMessage(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8' ) ], 502 );
     }
 
     $response = cd_lookup_sanitize_reps( $members );

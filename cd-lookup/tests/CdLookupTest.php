@@ -190,6 +190,14 @@ class CdLookupTest extends TestCase
         );
     }
 
+    public function test_error_message_with_malformed_utf8_is_not_silently_blanked(): void
+    {
+        $GLOBALS['stub_get_district_throws_invalid_address'] = "No match for \"123 \xB1\x31 Ave\"";
+        $data = cd_lookup_get_representatives($this->makeRequest('123 invalid-utf8 Ave'))->get_data();
+        $this->assertNotSame('', $data['message']);
+        $this->assertStringContainsString('No match for', $data['message']);
+    }
+
     public function test_second_request_for_same_address_reuses_cached_district(): void
     {
         cd_lookup_get_representatives($this->makeRequest('123 Main St'));
