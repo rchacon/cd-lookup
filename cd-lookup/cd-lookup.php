@@ -54,9 +54,9 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
         $endpoint = get_option( 'cd_lookup_api_endpoint', CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT );
         $members  = cd_lookup_fetch_members( $state, $district, $api_key, $endpoint );
     } catch ( InvalidAddressException $e ) {
-        return new WP_REST_Response( [ 'message' => $e->getMessage() ], 422 );
+        return new WP_REST_Response( [ 'message' => htmlspecialchars( $e->getMessage(), ENT_QUOTES, 'UTF-8' ) ], 422 );
     } catch ( RuntimeException $e ) {
-        return new WP_REST_Response( [ 'message' => $e->getMessage() ], 502 );
+        return new WP_REST_Response( [ 'message' => htmlspecialchars( $e->getMessage(), ENT_QUOTES, 'UTF-8' ) ], 502 );
     }
 
     $response = cd_lookup_sanitize_reps( $members );
