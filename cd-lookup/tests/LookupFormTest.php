@@ -105,10 +105,10 @@ class LookupFormTest extends TestCase
         $this->assertStringContainsString('data.message', $this->output);
     }
 
-    public function test_script_falls_back_to_a_generic_error_message(): void
+    public function test_script_falls_back_to_a_generic_error_message_including_the_http_status(): void
     {
         $this->assertStringContainsString(
-            "'Something went wrong, please try again.'",
+            "'Something went wrong, please try again. (HTTP ' + response.status + ')'",
             $this->output
         );
     }

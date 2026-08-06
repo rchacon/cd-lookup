@@ -209,7 +209,7 @@
         } catch (err) {
             // Response body wasn't JSON (or was empty) -- fall through to the generic message.
         }
-        return 'Something went wrong, please try again.';
+        return 'Something went wrong, please try again. (HTTP ' + response.status + ')';
     }
 
     // Feather icons (MIT licensed, https://feathericons.com), inlined so the
