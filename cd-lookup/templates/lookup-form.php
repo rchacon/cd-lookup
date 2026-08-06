@@ -103,7 +103,7 @@
         }
         .cdl-person .cdl-role {
             margin: 0 0 .5em;
-            font-size: .9em;
+            font-size: .8em;
             color: #555;
         }
         .cdl-person .cdl-meta {
@@ -202,16 +202,23 @@
     const GLOBE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>';
 
     function renderResults(data) {
-        return renderGroup('Senators', data.senators)
-             + renderGroup('Representatives', data.representatives, data.district);
+        return renderGroup('Senators', data.senators, data.state_name)
+             + renderGroup('Representatives', data.representatives, data.state_name, data.district);
     }
 
-    function renderGroup(heading, people, district) {
+    function renderGroup(heading, people, stateName, district) {
         if (!people.length) return '';
         const items = people.map(p => {
-            const role = district && district !== '0'
-                ? `${p.role} for the ${ordinal(district)} congressional district`
-                : p.role;
+            let role = p.role;
+            if (district === undefined) {
+                if (stateName) role = `${p.role} of ${stateName}`;
+            } else if (district !== '0') {
+                role = stateName
+                    ? `${p.role} for ${stateName}'s ${ordinal(district)} congressional district`
+                    : `${p.role} for the ${ordinal(district)} congressional district`;
+            } else if (stateName) {
+                role = `${p.role} for ${stateName}`;
+            }
             return `<li class="cdl-person">
                 ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.display_name}" width="80" height="80">` : ''}
                 <div>
