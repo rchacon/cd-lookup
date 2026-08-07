@@ -2,7 +2,7 @@
 /**
  * Plugin Name: CD Lookup
  * Description: Look up congressional representatives for a given street address.
- * Version:     0.3.1
+ * Version:     0.4.0
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Author:      Raul Chacon
