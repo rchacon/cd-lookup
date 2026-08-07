@@ -89,4 +89,8 @@ vendor/bin/phpunit tests/
 Pushing a `v*` tag triggers the `WordPress Plugin Release` GitHub Actions
 workflow (`.github/workflows/wp-release.yml`), which zips the plugin files
 (including `README.md`, but not this file) and publishes a GitHub Release
-with the zip attached.
+with the zip attached. The workflow's first step
+(`../scripts/check-tag-version.sh`) hard-fails the release if the tag's
+version doesn't match `cd-lookup.php`'s own `Version:` header; an optional
+local `pre-push` git hook runs the same check before the tag is even
+pushed (`git config core.hooksPath .githooks`, see the root `CLAUDE.md`).
