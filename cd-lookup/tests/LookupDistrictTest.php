@@ -77,6 +77,112 @@ class LookupDistrictTest extends TestCase
         $this->assertNull(extract_congressional_district($geographies));
     }
 
+    private function memberResource(string $role, ?int $district, string $last): array
+    {
+        return [
+            'type'       => 'member',
+            'id'         => strtolower($last[0]) . '000001',
+            'attributes' => [
+                'first_name' => 'Test',
+                'last_name'  => $last,
+                'role'       => $role,
+                'district'   => $district,
+                'state'      => 'GA',
+                'in_office'  => true,
+            ],
+        ];
+    }
+
+    public function test_members_by_chamber_splits_senators_and_the_district_representative(): void
+    {
+        $document = [
+            'data' => [
+                $this->memberResource('Senator', null, 'Ossoff'),
+                $this->memberResource('Senator', null, 'Warnock'),
+                $this->memberResource('Representative', 5, 'Williams'),
+                $this->memberResource('Representative', 6, 'McBath'),
+            ],
+            'meta' => [],
+        ];
+
+        $grouped = members_by_chamber($document, '5');
+
+        $this->assertSame(['Ossoff', 'Warnock'], array_column($grouped['senators'], 'last_name'));
+        $this->assertSame(['Williams'], array_column($grouped['representatives'], 'last_name'));
+    }
+
+    public function test_members_by_chamber_flattens_resources_to_their_attributes(): void
+    {
+        $document = ['data' => [$this->memberResource('Senator', null, 'Ossoff')]];
+
+        $senator = members_by_chamber($document, '5')['senators'][0];
+
+        $this->assertSame('Ossoff', $senator['last_name']);
+        $this->assertArrayNotHasKey('attributes', $senator);
+    }
+
+    public function test_members_by_chamber_matches_at_large_district_zero(): void
+    {
+        $document = ['data' => [$this->memberResource('Representative', 0, 'Stansbury')]];
+
+        $grouped = members_by_chamber($document, '0');
+
+        $this->assertSame(['Stansbury'], array_column($grouped['representatives'], 'last_name'));
+    }
+
+    public function test_members_by_chamber_returns_empty_representatives_for_a_vacant_district(): void
+    {
+        $document = [
+            'data' => [
+                $this->memberResource('Senator', null, 'Ossoff'),
+                $this->memberResource('Representative', 6, 'McBath'),
+            ],
+        ];
+
+        $grouped = members_by_chamber($document, '5');
+
+        $this->assertCount(1, $grouped['senators']);
+        $this->assertSame([], $grouped['representatives']);
+    }
+
+    public function test_members_by_chamber_skips_resources_without_attributes(): void
+    {
+        $document = ['data' => [['type' => 'member', 'id' => 'x000001'], 'garbage']];
+
+        $grouped = members_by_chamber($document, '5');
+
+        $this->assertSame(['senators' => [], 'representatives' => []], $grouped);
+    }
+
+    public function test_members_by_chamber_throws_when_data_is_missing(): void
+    {
+        $this->expectException(RuntimeException::class);
+        members_by_chamber(['errors' => []], '5');
+    }
+
+    public function test_cd_platform_error_message_reads_jsonapi_error_detail(): void
+    {
+        $body = json_encode(['errors' => [['status' => '404', 'title' => 'Not Found', 'detail' => 'No such district for GA.']]]);
+        $this->assertSame('No such district for GA.', cd_platform_error_message($body, 404));
+    }
+
+    public function test_cd_platform_error_message_falls_back_to_jsonapi_error_title(): void
+    {
+        $body = json_encode(['errors' => [['status' => '422', 'title' => 'Unprocessable Entity']]]);
+        $this->assertSame('Unprocessable Entity', cd_platform_error_message($body, 422));
+    }
+
+    public function test_cd_platform_error_message_reads_pre_jsonapi_detail(): void
+    {
+        $body = json_encode(['detail' => 'legacy problem+json message']);
+        $this->assertSame('legacy problem+json message', cd_platform_error_message($body, 400));
+    }
+
+    public function test_cd_platform_error_message_falls_back_to_http_status(): void
+    {
+        $this->assertSame('cd-platform API returned HTTP 502', cd_platform_error_message('<html>gateway</html>', 502));
+    }
+
     public function test_no_address_match_exception_is_an_invalid_address_exception(): void
     {
         $this->assertInstanceOf(InvalidAddressException::class, new NoAddressMatchException());

@@ -70,6 +70,10 @@ Array
 )
 ```
 
+Each member array also carries `district`, `state`, and `in_office` keys
+straight from cd-api's JSON:API `member` resource; the plugin ignores them
+when rendering but they're passed through untouched.
+
 # Testing
 
 ```
