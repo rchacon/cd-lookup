@@ -70,9 +70,11 @@ Array
 )
 ```
 
-Each member array also carries `district`, `state`, and `in_office` keys
-straight from cd-api's JSON:API `member` resource; the plugin ignores them
-when rendering but they're passed through untouched.
+`fetch_members()` also returns `district`, `state`, and `in_office` on each
+member array (omitted above for brevity), straight from cd-api's JSON:API
+`member` resource. The WordPress path drops them in
+`cd_lookup_sanitize_person()`, so they don't reach the REST response or the
+browser.
 
 # Testing
 
