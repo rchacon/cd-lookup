@@ -1,6 +1,7 @@
 <?php
 /**
  * Plugin Name: CD Lookup
+ * Plugin URI:  https://civicdog.com/
  * Description: Look up congressional representatives for a given street address.
  * Version:     0.4.0
  * Requires at least: 6.0
