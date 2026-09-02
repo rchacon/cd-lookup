@@ -33,6 +33,7 @@ htmlcov/
 # Environment variables
 .env
 .env.*
+!.env.sample
 
 # IDE
 .idea/
