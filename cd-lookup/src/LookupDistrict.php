@@ -38,11 +38,18 @@ if (!function_exists('curl_get')) {
 }
 
 /**
- * Fetch senators/representatives for a state (and optional district) from
- * cd-platform's cd-api. Returns ['senators' => [...], 'representatives' => [...]],
- * each person an array with keys: role, party, phone, website, photo_url, plus
- * either full_name (older cd-api deploys) or first_name/middle_name/last_name/
- * nickname/suffix (current cd-api) -- see cd_lookup_display_name().
+ * Fetch senators/representatives for a state and district from cd-platform's
+ * cd-api. Returns ['senators' => [...], 'representatives' => [...]], each
+ * person an array with keys: role, party, phone, website, photo_url, district,
+ * state, plus either full_name (older cd-api deploys) or first_name/
+ * middle_name/last_name/nickname/suffix (current cd-api) -- see
+ * cd_lookup_display_name().
+ *
+ * cd-api's GET /members is a JSON:API endpoint: a single ?filter[state]=XX
+ * call returns the whole state delegation (both Senators and every House
+ * member) as a flat `data` collection of `member` resources.
+ * members_by_chamber() regroups that into the senators/representatives shape
+ * and narrows the House side to $district.
  *
  * No retry/backoff on failure -- a single attempt only, same convention the
  * old govtrack.us fetch followed (see cd-lookup#8).
@@ -51,29 +58,85 @@ if (!function_exists('fetch_members')) {
     function fetch_members(string $state, string $district, string $api_key, string $endpoint = CD_PLATFORM_MEMBERS_ENDPOINT_DEFAULT): array
     {
         $url = $endpoint . '?' . http_build_query([
-            'state'    => $state,
-            'district' => (int) $district,
+            'filter[state]' => $state,
         ]);
 
-        ['body' => $response, 'error' => $error, 'status' => $status] = curl_get($url, ["x-api-key: {$api_key}"]);
+        ['body' => $response, 'error' => $error, 'status' => $status] = curl_get($url, [
+            "x-api-key: {$api_key}",
+            'Accept: application/vnd.api+json',
+        ]);
 
         if ($response === false) {
             throw new RuntimeException("Failed to reach cd-platform API: {$error}");
         }
         if ($status < 200 || $status >= 300) {
-            $problem = json_decode($response, true);
-            $detail = is_array($problem) && isset($problem['detail']) ? $problem['detail'] : null;
-            throw new RuntimeException($detail ?? "cd-platform API returned HTTP {$status}");
+            throw new RuntimeException(cd_platform_error_message($response, $status));
         }
 
-        $data = json_decode($response, true);
+        return members_by_chamber(json_decode($response, true), $district);
+    }
+}
 
-        if (!is_array($data) || !isset($data['senators'], $data['representatives'])
-            || !is_array($data['senators']) || !is_array($data['representatives'])) {
+/**
+ * Regroup cd-api's JSON:API `GET /members` collection into the
+ * ['senators' => [...], 'representatives' => [...]] shape the rest of the
+ * plugin consumes, flattening each resource to its `attributes` object.
+ *
+ * ?filter[state]=XX returns the whole state delegation, so the district
+ * filter is applied here rather than by the API: a member is a senator when
+ * its role is "Senator", and a representative only when its `district`
+ * attribute matches $district (compared numerically so "0"/at-large lines up
+ * regardless of formatting). House members from other districts are dropped,
+ * matching what the pre-JSON:API endpoint returned for a state+district.
+ */
+if (!function_exists('members_by_chamber')) {
+    function members_by_chamber($document, string $district): array
+    {
+        if (!is_array($document) || !is_array($document['data'] ?? null)) {
             throw new RuntimeException('cd-platform API returned an unexpected response while fetching members');
         }
 
-        return $data;
+        $senators = [];
+        $representatives = [];
+
+        foreach ($document['data'] as $resource) {
+            if (!is_array($resource) || !is_array($resource['attributes'] ?? null)) {
+                continue;
+            }
+
+            $member = $resource['attributes'];
+
+            if (($member['role'] ?? null) === 'Senator') {
+                $senators[] = $member;
+            } elseif (isset($member['district']) && (string) (int) $member['district'] === (string) (int) $district) {
+                $representatives[] = $member;
+            }
+        }
+
+        return ['senators' => $senators, 'representatives' => $representatives];
+    }
+}
+
+/**
+ * Pull a human-readable message out of a cd-api error response body. cd-api's
+ * JSON:API errors are {"errors": [{"title": ..., "detail": ...}, ...]}; the
+ * pre-JSON:API shape was a bare {"detail": ...}. Fall back to the HTTP status
+ * when the body is neither.
+ */
+if (!function_exists('cd_platform_error_message')) {
+    function cd_platform_error_message($response, int $status): string
+    {
+        $document = json_decode((string) $response, true);
+
+        if (is_array($document['errors'][0] ?? null)) {
+            $error = $document['errors'][0];
+            return $error['detail'] ?? $error['title'] ?? "cd-platform API returned HTTP {$status}";
+        }
+        if (isset($document['detail']) && is_string($document['detail'])) {
+            return $document['detail'];
+        }
+
+        return "cd-platform API returned HTTP {$status}";
     }
 }
 

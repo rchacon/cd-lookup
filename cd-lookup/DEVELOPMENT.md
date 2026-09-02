@@ -70,6 +70,12 @@ Array
 )
 ```
 
+`fetch_members()` also returns `district`, `state`, and `in_office` on each
+member array (omitted above for brevity), straight from cd-api's JSON:API
+`member` resource. The WordPress path drops them in
+`cd_lookup_sanitize_person()`, so they don't reach the REST response or the
+browser.
+
 # Testing
 
 ```
