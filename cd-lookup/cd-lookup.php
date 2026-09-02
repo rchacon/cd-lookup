@@ -138,6 +138,13 @@ function cd_lookup_normalize_address_for_cache_key( string $address ): string {
  * avoid a round trip on every request. Shorter TTL than the district cache
  * since a district's roster of representatives can change (resignation,
  * special election) far more often than its boundaries do.
+ *
+ * The key is still per state:district even though fetch_members() now pulls
+ * the whole state delegation in one call (cd-api's JSON:API /members has no
+ * per-district fetch). So within one TTL window, every distinct district of
+ * a large state re-fetches and re-stores the same whole-state payload. It's
+ * a few KB of JSON each, so this is left as-is rather than adding a
+ * state-keyed raw-response cache with district filtering on read.
  */
 function cd_lookup_fetch_members( string $state, string $district, string $api_key, string $endpoint ): array {
     $cache_key = CD_LOOKUP_MEMBERS_TRANSIENT_PREFIX . md5( "{$state}:{$district}" );
