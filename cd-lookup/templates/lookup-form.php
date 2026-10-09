@@ -85,9 +85,9 @@
         }
         .cdl-person {
             display: flex;
-            gap: 1em;
-            margin: 0 0 1em;
-            padding: 1em;
+            gap: .85em;
+            margin: 0 0 .75em;
+            padding: .75em;
             background: #fff;
             border: 1px solid rgba(38, 51, 105, .12);
             border-radius: var(--cdl-radius);
@@ -138,32 +138,51 @@
             width: 16px;
             height: 16px;
         }
+        .cdl-person > div {
+            flex: 1;
+            min-width: 0;
+        }
         .cdl-person .cdl-votes {
             display: flex;
-            flex-wrap: wrap;
             align-items: center;
-            gap: .5em;
-            margin: .8em 0 0;
-            font-size: .85em;
+            gap: .4em;
+            margin: .5em 0 0;
+            font-size: .8em;
             color: var(--cdl-navy);
         }
+        .cdl-person .cdl-votes label {
+            display: flex;
+            flex: 0 1 auto;
+            align-items: center;
+            gap: .4em;
+            min-width: 0;
+            font-weight: 600;
+            white-space: nowrap;
+        }
         .cdl-person .cdl-votes select {
-            max-width: 100%;
-            padding: .3em .5em;
+            flex: 1;
+            min-width: 0;
+            max-width: 16em;
+            padding: .2em .4em;
             font-size: 1em;
             border: 1px solid rgba(38, 51, 105, .25);
-            border-radius: 8px;
+            border-radius: 6px;
         }
         .cdl-person .cdl-votes-link {
-            padding: .35em 1em;
-            font-weight: 600;
-            letter-spacing: .04em;
-            text-transform: uppercase;
+            display: inline-flex;
+            flex: none;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
             color: #fff;
             background: var(--cdl-navy);
-            border-radius: var(--cdl-btn-radius);
-            white-space: nowrap;
+            border-radius: 50%;
             transition: background .3s ease-in-out, color .3s ease-in-out;
+        }
+        .cdl-person .cdl-votes-link svg {
+            width: 14px;
+            height: 14px;
         }
         .cdl-person .cdl-votes-link:hover {
             color: var(--cdl-navy);
@@ -172,6 +191,47 @@
         .cdl-person .cdl-votes-link[aria-disabled="true"] {
             opacity: .45;
             pointer-events: none;
+        }
+        /* Touchscreens / phones: grow every tap target to ~40px so the
+           phone/globe icons and the topic picker aren't easy to mis-tap.
+           Icon boxes use negative vertical margins so the meta row keeps
+           its height; the votes row gets extra top margin to clear them. */
+        @media (pointer: coarse), (max-width: 480px) {
+            .cdl-person .cdl-meta {
+                gap: .25em;
+            }
+            .cdl-icon-link {
+                align-items: center;
+                justify-content: center;
+                width: 40px;
+                height: 40px;
+                margin: -8px 0;
+            }
+            .cdl-person .cdl-votes {
+                align-items: flex-end;
+                margin-top: 1em;
+            }
+            .cdl-person .cdl-votes label {
+                flex: 1 1 auto;
+                flex-wrap: wrap;
+                gap: .3em;
+            }
+            .cdl-person .cdl-votes-text {
+                width: 100%;
+            }
+            .cdl-person .cdl-votes select {
+                max-width: none;
+                height: 40px;
+                font-size: 16px; /* >= 16px stops iOS Safari zooming in on focus */
+            }
+            .cdl-person .cdl-votes-link {
+                width: 40px;
+                height: 40px;
+            }
+            .cdl-person .cdl-votes-link svg {
+                width: 18px;
+                height: 18px;
+            }
         }
     </style>
 
@@ -235,7 +295,7 @@
         }
     });
 
-    // Point a card's "See votes" link at the chosen topic on CivicDog (which
+    // Point a card's votes link at the chosen topic on CivicDog (which
     // runs the topic search itself from ?topic=). Delegated, since the cards
     // are re-rendered on every lookup.
     container.querySelector('#cd-lookup-results').addEventListener('change', function (e) {
@@ -271,6 +331,7 @@
     // Feather icons (MIT licensed, https://feathericons.com), inlined so the
     // widget stays self-contained -- no icon font/sprite request.
     const PHONE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>';
+    const ARROW_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>';
     const GLOBE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>';
 
     function renderResults(data) {
@@ -292,7 +353,7 @@
                 role = `${p.role} for ${stateName}`;
             }
             return `<li class="cdl-person">
-                ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.display_name}" width="80" height="80">` : ''}
+                ${p.photo_url ? `<img src="${p.photo_url}" alt="${p.display_name}" width="64" height="64">` : ''}
                 <div>
                     <p class="cdl-name">${p.display_name}</p>
                     <p class="cdl-role">${role}</p>
@@ -314,13 +375,13 @@
         if (p.role !== 'Representative' || !p.bioguide_id || !voteTopics.length) return '';
         const options = voteTopics.map((t, i) => `<option value="${i}">${t.label}</option>`).join('');
         return `<div class="cdl-votes">
-            <label>See how ${p.display_name} voted on
-                <select class="cdl-topic" data-bioguide="${p.bioguide_id}">
+            <label><span class="cdl-votes-text">Votes on</span>
+                <select class="cdl-topic" data-bioguide="${p.bioguide_id}" aria-label="See how ${p.display_name} voted on">
                     <option value="">Choose a topic&hellip;</option>
                     ${options}
                 </select>
             </label>
-            <a class="cdl-votes-link" target="_blank" rel="noopener" aria-disabled="true">See votes &#8599;</a>
+            <a class="cdl-votes-link" target="_blank" rel="noopener" aria-disabled="true" aria-label="See ${p.display_name}'s votes on CivicDog" title="See votes on CivicDog">${ARROW_ICON}</a>
         </div>`;
     }
 
