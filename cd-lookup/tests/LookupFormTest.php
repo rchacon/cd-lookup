@@ -142,6 +142,14 @@ class LookupFormTest extends TestCase
         );
     }
 
+    public function test_script_renders_representatives_before_senators(): void
+    {
+        $this->assertLessThan(
+            strpos($this->output, "renderGroup('Senators'"),
+            strpos($this->output, "renderGroup('Representatives'")
+        );
+    }
+
     public function test_script_defines_ordinal_function(): void
     {
         $this->assertStringContainsString('function ordinal(', $this->output);
