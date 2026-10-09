@@ -261,9 +261,10 @@
     const endpoint = <?php echo wp_json_encode( rest_url( 'cd-lookup/v1/representatives' ) ); ?>;
     const nonce    = <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?>;
     const civicdogUrl = <?php echo wp_json_encode( rtrim( get_option( 'cd_lookup_civicdog_app_url', CD_LOOKUP_CIVICDOG_APP_URL_DEFAULT ), '/' ) ); ?>;
-    // Admin-curated topics (Settings > CD Lookup). `label` is pre-escaped for
-    // innerHTML; the raw `topic` only ever goes through encodeURIComponent.
-    const voteTopics  = <?php echo wp_json_encode( array_map( fn ( $topic ) => [ 'label' => cd_lookup_esc( $topic ), 'topic' => $topic ], cd_lookup_vote_topics() ) ); ?>;
+    // Admin-curated topics (Settings > CD Lookup). `label` and `group` are
+    // pre-escaped for innerHTML; the raw `topic` only ever goes through
+    // encodeURIComponent.
+    const voteTopics  = <?php echo wp_json_encode( array_map( fn ( $entry ) => [ 'label' => cd_lookup_esc( $entry['topic'] ), 'topic' => $entry['topic'], 'group' => $entry['group'] === null ? null : cd_lookup_esc( $entry['group'] ) ], cd_lookup_vote_topics() ) ); ?>;
 
     container.querySelector('#cd-lookup-form').addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -373,7 +374,7 @@
     // Delegates / the Resident Commissioner have no floor votes to search.
     function renderVoteTopics(p) {
         if (p.role !== 'Representative' || !p.bioguide_id || !voteTopics.length) return '';
-        const options = voteTopics.map((t, i) => `<option value="${i}">${t.label}</option>`).join('');
+        const options = voteTopicOptions();
         return `<div class="cdl-votes">
             <label><span class="cdl-votes-text">Votes on</span>
                 <select class="cdl-topic" data-bioguide="${p.bioguide_id}" aria-label="See how ${p.display_name} voted on">
@@ -383,6 +384,24 @@
             </label>
             <a class="cdl-votes-link" target="_blank" rel="noopener" aria-disabled="true" aria-label="See ${p.display_name}'s votes on CivicDog" title="See votes on CivicDog">${ARROW_ICON}</a>
         </div>`;
+    }
+
+    // <option>s for the topic picker, with each "[Heading]" group from the
+    // admin's list wrapped in an <optgroup>. Option values index into
+    // voteTopics. Grouped topics are always contiguous, ungrouped ones first
+    // (see cd_lookup_parse_vote_topics()).
+    function voteTopicOptions() {
+        let html = '';
+        let open = null;
+        voteTopics.forEach((t, i) => {
+            if (t.group !== open) {
+                if (open !== null) html += '</optgroup>';
+                html += `<optgroup label="${t.group}">`;
+                open = t.group;
+            }
+            html += `<option value="${i}">${t.label}</option>`;
+        });
+        return open !== null ? html + '</optgroup>' : html;
     }
 
     // District is not at-large ("0") -- e.g. 12 -> "12th", 1 -> "1st", 11 -> "11th".

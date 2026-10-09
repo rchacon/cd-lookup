@@ -206,10 +206,27 @@ class LookupFormTest extends TestCase
         $output = $this->render();
 
         $this->assertStringContainsString(
-            '{"label":"immigration enforcement","topic":"immigration enforcement"}',
+            '{"label":"immigration enforcement","topic":"immigration enforcement","group":null}',
             $output
         );
-        $this->assertStringContainsString('{"label":"guns &amp; &lt;ammo&gt;","topic":"guns & <ammo>"}', $output);
+        $this->assertStringContainsString('{"label":"guns &amp; &lt;ammo&gt;","topic":"guns & <ammo>","group":null}', $output);
+    }
+
+    public function test_script_inlines_vote_topic_groups_with_escaped_headings(): void
+    {
+        $GLOBALS['stub_options']['cd_lookup_vote_topics'] = "[Gender & \"Sex\"]\ntransgender rights";
+        $output = $this->render();
+
+        $this->assertStringContainsString(
+            '{"label":"transgender rights","topic":"transgender rights","group":"Gender &amp; &quot;Sex&quot;"}',
+            $output
+        );
+    }
+
+    public function test_script_wraps_grouped_topics_in_optgroups(): void
+    {
+        $this->assertStringContainsString('<optgroup label="${t.group}">', $this->output);
+        $this->assertStringContainsString("'</optgroup>'", $this->output);
     }
 
     public function test_script_inlines_the_default_civicdog_app_url(): void

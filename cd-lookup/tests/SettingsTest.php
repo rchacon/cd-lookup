@@ -80,7 +80,10 @@ class SettingsTest extends TestCase
     public function test_parse_vote_topics_trims_drops_blanks_and_dedupes(): void
     {
         $this->assertSame(
-            ['immigration enforcement', 'firearm regulation'],
+            [
+                ['topic' => 'immigration enforcement', 'group' => null],
+                ['topic' => 'firearm regulation', 'group' => null],
+            ],
             cd_lookup_parse_vote_topics("  immigration enforcement \r\n\n\tfirearm regulation\nimmigration enforcement\n   \n")
         );
     }
@@ -88,7 +91,7 @@ class SettingsTest extends TestCase
     public function test_parse_vote_topics_caps_each_topic_length(): void
     {
         $topics = cd_lookup_parse_vote_topics(str_repeat('a', 250));
-        $this->assertSame(200, mb_strlen($topics[0]));
+        $this->assertSame(200, mb_strlen($topics[0]['topic']));
     }
 
     public function test_sanitize_vote_topics_strips_tags_and_normalizes_lines(): void
@@ -107,6 +110,68 @@ class SettingsTest extends TestCase
     public function test_vote_topics_reads_the_saved_option(): void
     {
         $GLOBALS['stub_options']['cd_lookup_vote_topics'] = "immigration enforcement\nfirearm regulation";
-        $this->assertSame(['immigration enforcement', 'firearm regulation'], cd_lookup_vote_topics());
+        $this->assertSame(
+            [
+                ['topic' => 'immigration enforcement', 'group' => null],
+                ['topic' => 'firearm regulation', 'group' => null],
+            ],
+            cd_lookup_vote_topics()
+        );
+    }
+
+    public function test_parse_vote_topics_groups_topics_under_bracketed_headings(): void
+    {
+        $this->assertSame(
+            [
+                ['topic' => 'immigration enforcement', 'group' => null],
+                ['topic' => 'transgender rights', 'group' => 'Gender'],
+                ['topic' => 'abortion access', 'group' => 'Gender'],
+                ['topic' => 'firearm regulation', 'group' => 'Public Safety'],
+            ],
+            cd_lookup_parse_vote_topics(
+                "immigration enforcement\n[Gender]\ntransgender rights\nabortion access\n[ Public Safety ]\nfirearm regulation"
+            )
+        );
+    }
+
+    public function test_parse_vote_topics_merges_a_repeated_heading_and_dedupes_within_a_group(): void
+    {
+        $this->assertSame(
+            [
+                ['topic' => 'abortion access', 'group' => 'Gender'],
+                ['topic' => 'transgender rights', 'group' => 'Gender'],
+                ['topic' => 'firearm regulation', 'group' => 'Guns'],
+            ],
+            cd_lookup_parse_vote_topics(
+                "[Gender]\nabortion access\n[Guns]\nfirearm regulation\n[Gender]\ntransgender rights\nabortion access"
+            )
+        );
+    }
+
+    public function test_parse_vote_topics_keeps_the_same_topic_under_different_groups(): void
+    {
+        $this->assertSame(
+            [
+                ['topic' => 'abortion access', 'group' => 'Gender'],
+                ['topic' => 'abortion access', 'group' => 'Health'],
+            ],
+            cd_lookup_parse_vote_topics("[Gender]\nabortion access\n[Health]\nabortion access")
+        );
+    }
+
+    public function test_parse_vote_topics_drops_empty_headings(): void
+    {
+        $this->assertSame(
+            [['topic' => 'firearm regulation', 'group' => null]],
+            cd_lookup_parse_vote_topics("[]\nfirearm regulation\n[Unused]")
+        );
+    }
+
+    public function test_sanitize_vote_topics_keeps_normalized_heading_lines(): void
+    {
+        $this->assertSame(
+            "[Gender]\ntransgender rights",
+            cd_lookup_sanitize_vote_topics("[ Gender ]\r\n[]\r\n  transgender rights")
+        );
     }
 }

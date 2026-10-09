@@ -62,29 +62,95 @@ if (!function_exists('cd_lookup_render_api_key_field')) {
 const CD_LOOKUP_VOTE_TOPIC_MAX = 200;
 
 /**
- * Split the admin's one-topic-per-line text into a clean list: trimmed,
- * blank lines dropped, capped at CD_LOOKUP_VOTE_TOPIC_MAX chars, deduped.
+ * Return the heading text when $line is a "[Heading]" line, else null.
+ */
+if (!function_exists('cd_lookup_vote_topic_heading')) {
+    function cd_lookup_vote_topic_heading(string $line): ?string
+    {
+        return preg_match('/^\[(.*)\]$/su', $line, $m) ? trim($m[1]) : null;
+    }
+}
+
+/**
+ * Clean the admin's one-entry-per-line text: each line trimmed and capped
+ * at CD_LOOKUP_VOTE_TOPIC_MAX chars, blank lines and empty "[]" headings
+ * dropped, and "[ Heading ]" normalized to "[Heading]".
+ */
+if (!function_exists('cd_lookup_vote_topic_lines')) {
+    function cd_lookup_vote_topic_lines(string $text): array
+    {
+        $lines = [];
+
+        foreach (preg_split('/\R/u', $text) ?: [] as $line) {
+            $line = trim($line);
+            $heading = cd_lookup_vote_topic_heading($line);
+
+            if ($heading !== null) {
+                $line = $heading === '' ? '' : '[' . mb_substr($heading, 0, CD_LOOKUP_VOTE_TOPIC_MAX) . ']';
+            } else {
+                $line = mb_substr($line, 0, CD_LOOKUP_VOTE_TOPIC_MAX);
+            }
+
+            if ($line !== '') {
+                $lines[] = $line;
+            }
+        }
+
+        return $lines;
+    }
+}
+
+/**
+ * Parse the admin's text into a flat list of ['topic' => ..., 'group' => ...]
+ * entries. A "[Heading]" line starts a group (rendered as an <optgroup>)
+ * that every topic after it belongs to, until the next heading; topics
+ * before the first heading have a null group and come first. A repeated
+ * heading continues its earlier group rather than starting a second one,
+ * a heading with no topics under it is dropped, and a topic repeated within
+ * the same group is listed once.
  */
 if (!function_exists('cd_lookup_parse_vote_topics')) {
     function cd_lookup_parse_vote_topics(string $text): array
     {
-        $topics = array_map(
-            fn ($line) => mb_substr(trim($line), 0, CD_LOOKUP_VOTE_TOPIC_MAX),
-            preg_split('/\R/u', $text) ?: []
-        );
+        // Keyed by group name ('' for ungrouped, which is always first);
+        // PHP arrays keep insertion order, so groups stay in the order the
+        // admin first wrote them.
+        $groups = ['' => []];
+        $current = '';
 
-        return array_values(array_unique(array_filter($topics, fn ($topic) => $topic !== '')));
+        foreach (cd_lookup_vote_topic_lines($text) as $line) {
+            $heading = cd_lookup_vote_topic_heading($line);
+
+            if ($heading !== null) {
+                $current = $heading;
+                $groups[$current] ??= [];
+            } else {
+                $groups[$current][$line] = true;
+            }
+        }
+
+        $topics = [];
+        foreach ($groups as $group => $members) {
+            foreach (array_keys($members) as $topic) {
+                $topics[] = ['topic' => (string) $topic, 'group' => $group === '' ? null : (string) $group];
+            }
+        }
+
+        return $topics;
     }
 }
 
 if (!function_exists('cd_lookup_sanitize_vote_topics')) {
     function cd_lookup_sanitize_vote_topics($value): string
     {
-        return implode("\n", cd_lookup_parse_vote_topics(sanitize_textarea_field((string) $value)));
+        return implode("\n", cd_lookup_vote_topic_lines(sanitize_textarea_field((string) $value)));
     }
 }
 
-/** The admin-curated topics offered on each voting Representative's card. */
+/**
+ * The admin-curated topics offered on each voting Representative's card,
+ * as cd_lookup_parse_vote_topics() entries.
+ */
 if (!function_exists('cd_lookup_vote_topics')) {
     function cd_lookup_vote_topics(): array
     {
@@ -97,7 +163,7 @@ if (!function_exists('cd_lookup_render_vote_topics_field')) {
     {
         $value = get_option('cd_lookup_vote_topics', '');
         echo '<textarea name="cd_lookup_vote_topics" rows="8" class="large-text">' . esc_textarea($value) . '</textarea>';
-        echo '<p class="description">One topic per line. Shown as a dropdown on each voting Representative&rsquo;s card, linking to their CivicDog voting record for that topic. Leave empty to hide.</p>';
+        echo '<p class="description">One topic per line. Put a heading in square brackets on its own line (e.g. <code>[Gender]</code>) to group the topics below it under that heading. Shown as a dropdown on each voting Representative&rsquo;s card, linking to their CivicDog voting record for that topic. Leave empty to hide.</p>';
     }
 }
 
