@@ -255,4 +255,35 @@ class LookupFormTest extends TestCase
             $this->output
         );
     }
+
+    public function test_template_has_no_inline_style_block(): void
+    {
+        $this->assertStringNotContainsString('<style', $this->output);
+    }
+
+    public function test_shortcode_enqueues_the_stylesheet_versioned_by_mtime(): void
+    {
+        $GLOBALS['stub_enqueued_styles'] = [];
+        cd_lookup_shortcode();
+
+        $this->assertSame(
+            [
+                'src' => 'https://example.com/wp-content/plugins/cd-lookup/assets/lookup-form.css',
+                'ver' => (string) filemtime(__DIR__ . '/../assets/lookup-form.css'),
+            ],
+            $GLOBALS['stub_enqueued_styles']['cd-lookup']
+        );
+    }
+
+    public function test_shortcode_returns_the_rendered_form(): void
+    {
+        $this->assertStringContainsString('<form id="cd-lookup-form">', cd_lookup_shortcode());
+    }
+
+    public function test_stylesheet_styles_the_form_and_cards(): void
+    {
+        $css = file_get_contents(__DIR__ . '/../assets/lookup-form.css');
+        $this->assertStringContainsString('#cd-lookup-form {', $css);
+        $this->assertStringContainsString('.cdl-person {', $css);
+    }
 }

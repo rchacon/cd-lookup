@@ -62,6 +62,18 @@ if (!function_exists('esc_textarea')) {
         return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
     }
 }
+if (!function_exists('wp_enqueue_style')) {
+    function wp_enqueue_style(string $handle, string $src = '', array $deps = [], string|bool|null $ver = false): void
+    {
+        $GLOBALS['stub_enqueued_styles'][$handle] = ['src' => $src, 'ver' => $ver];
+    }
+}
+if (!function_exists('plugins_url')) {
+    function plugins_url(string $path = '', string $plugin = ''): string
+    {
+        return 'https://example.com/wp-content/plugins/cd-lookup/' . ltrim($path, '/');
+    }
+}
 if (!function_exists('esc_attr')) {
     function esc_attr(string $value): string
     {

@@ -240,8 +240,17 @@ function cd_lookup_sanitize_url( string $url ): string {
     return cd_lookup_esc( $url );
 }
 
-add_shortcode( 'cd_lookup', function () {
+/**
+ * Render the [cd_lookup] shortcode, enqueuing its stylesheet only on pages
+ * that actually use it. The file's mtime is the version, so browsers and
+ * page caches pick up CSS changes without a plugin version bump.
+ */
+function cd_lookup_shortcode(): string {
+    $css = 'assets/lookup-form.css';
+    wp_enqueue_style( 'cd-lookup', plugins_url( $css, __FILE__ ), [], (string) filemtime( __DIR__ . '/' . $css ) );
+
     ob_start();
     include __DIR__ . '/templates/lookup-form.php';
     return ob_get_clean();
-} );
+}
+add_shortcode( 'cd_lookup', 'cd_lookup_shortcode' );

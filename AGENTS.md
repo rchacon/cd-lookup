@@ -49,6 +49,7 @@ This is a WordPress plugin that looks up U.S. congressional representatives by s
 - `src/LookupDistrict.php` — district resolution and cd-api client as global functions; also runnable as a CLI script
 - `src/Settings.php` — Settings → CD Lookup admin page for the cd-platform API key
 - `templates/lookup-form.php` — HTML form + inline vanilla JS REST client
+- `assets/lookup-form.css` — the form/card styles, enqueued by `cd_lookup_shortcode()` only on pages using `[cd_lookup]` (versioned by file mtime); shipped in the release zip via `.github/workflows/wp-release.yml`'s explicit file list
 - `tests/bootstrap.php` — WordPress stub functions and HTTP stub functions (overrides `get_district`/`fetch_members` before `LookupDistrict.php` loads, using PHP's `function_exists` guards)
 
 **Testing approach:** Tests never hit the network. `bootstrap.php` defines stub implementations of `get_district` and `fetch_members` before `LookupDistrict.php` is loaded; the `function_exists` guards in `LookupDistrict.php` cause the real cURL implementations to be skipped. `bootstrap.php` also stubs `get_transient`/`set_transient` (backed by an in-memory `$GLOBALS['stub_transients']` array, used by `cd_lookup_get_district()`/`cd_lookup_fetch_members()`'s caching) and `get_option`/`update_option`/the Settings API (backed by `$GLOBALS['stub_options']`).

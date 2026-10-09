@@ -1,0 +1,235 @@
+/* Styles for the [cd_lookup] shortcode (templates/lookup-form.php), enqueued
+   by cd_lookup_shortcode() only on pages that use it. */
+#cd-lookup {
+    --cdl-navy: #263369;
+    --cdl-green: #0d8a56;
+    --cdl-tint: #eef1fa;
+    --cdl-radius: 12px;
+    --cdl-btn-radius: 30px;
+    max-width: 640px;
+}
+#cd-lookup-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: .75em;
+    background: var(--cdl-tint);
+    border-radius: var(--cdl-radius);
+    padding: 1.5em;
+    margin: 0 0 1.5em;
+}
+#cd-lookup-form .cdl-field {
+    flex: 1 1 260px;
+}
+#cd-lookup-form label {
+    display: block;
+    margin: 0 0 .4em;
+    font-size: .8em;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--cdl-navy);
+}
+#cd-lookup-address {
+    box-sizing: border-box;
+    width: 100%;
+    padding: .45em .9em;
+    font-size: 1em;
+    border: 1px solid rgba(38, 51, 105, .25);
+    border-radius: var(--cdl-radius);
+}
+#cd-lookup-address:focus {
+    outline: none;
+    border-color: var(--cdl-navy);
+}
+#cd-lookup-form button {
+    box-sizing: border-box;
+    flex: none;
+    padding: .45em 1.1em;
+    font-family: 'Public Sans', Arial, sans-serif;
+    font-size: 1em;
+    font-weight: 600;
+    letter-spacing: .065em;
+    text-transform: uppercase;
+    color: #fff;
+    background: var(--cdl-navy);
+    border: 1px solid transparent;
+    border-radius: var(--cdl-btn-radius);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .3s ease-in-out, color .3s ease-in-out, transform .3s ease-in-out, box-shadow .3s ease-in-out;
+}
+#cd-lookup-form button .cdl-btn-text {
+    font-size: .65em;
+}
+#cd-lookup-form button:hover {
+    background: #d1d7ed;
+    color: var(--cdl-navy);
+    transform: translateY(-1px);
+    box-shadow: 0 5px 10px rgba(0, 0, 0, .15);
+}
+#cd-lookup-results h3 {
+    margin: 1.5em 0 1em;
+    padding-bottom: .4em;
+    font-size: 1em;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--cdl-navy);
+    border-bottom: 3px solid var(--cdl-green);
+}
+#cd-lookup-results ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.cdl-person {
+    display: flex;
+    gap: .85em;
+    margin: 0 0 .75em;
+    padding: .75em;
+    background: #fff;
+    border: 1px solid rgba(38, 51, 105, .12);
+    border-radius: var(--cdl-radius);
+}
+.cdl-person img {
+    flex: none;
+    border-radius: var(--cdl-radius);
+}
+.cdl-person .cdl-name {
+    margin: 0 0 .2em;
+    font-weight: 700;
+    color: var(--cdl-navy);
+}
+.cdl-person .cdl-role {
+    margin: 0 0 .5em;
+    font-size: .8em;
+    color: #555;
+}
+.cdl-person .cdl-meta {
+    display: flex;
+    align-items: center;
+    gap: .6em;
+    margin: 0;
+    font-size: .9em;
+}
+.cdl-person .cdl-party {
+    display: inline-block;
+    padding: .2em .6em;
+    font-size: .75em;
+    font-weight: 600;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--cdl-navy);
+    background: var(--cdl-tint);
+    border-radius: 1em;
+}
+.cdl-person a {
+    color: var(--cdl-green);
+    text-decoration: none;
+}
+.cdl-person a:hover {
+    color: var(--cdl-navy);
+}
+.cdl-icon-link {
+    display: inline-flex;
+}
+.cdl-icon-link svg {
+    width: 16px;
+    height: 16px;
+}
+.cdl-person > div {
+    flex: 1;
+    min-width: 0;
+}
+.cdl-person .cdl-votes {
+    display: flex;
+    align-items: center;
+    gap: .4em;
+    margin: .5em 0 0;
+    font-size: .8em;
+    color: var(--cdl-navy);
+}
+.cdl-person .cdl-votes label {
+    display: flex;
+    flex: 0 1 auto;
+    align-items: center;
+    gap: .4em;
+    min-width: 0;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.cdl-person .cdl-votes select {
+    flex: 1;
+    min-width: 0;
+    max-width: 16em;
+    padding: .2em .4em;
+    font-size: 1em;
+    border: 1px solid rgba(38, 51, 105, .25);
+    border-radius: 6px;
+}
+.cdl-person .cdl-votes-link {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    color: #fff;
+    background: var(--cdl-navy);
+    border-radius: 50%;
+    transition: background .3s ease-in-out, color .3s ease-in-out;
+}
+.cdl-person .cdl-votes-link svg {
+    width: 14px;
+    height: 14px;
+}
+.cdl-person .cdl-votes-link:hover {
+    color: var(--cdl-navy);
+    background: #d1d7ed;
+}
+.cdl-person .cdl-votes-link[aria-disabled="true"] {
+    opacity: .45;
+    pointer-events: none;
+}
+/* Touchscreens / phones: grow every tap target to ~40px so the
+   phone/globe icons and the topic picker aren't easy to mis-tap.
+   Icon boxes use negative vertical margins so the meta row keeps
+   its height; the votes row gets extra top margin to clear them. */
+@media (pointer: coarse), (max-width: 480px) {
+    .cdl-person .cdl-meta {
+        gap: .25em;
+    }
+    .cdl-icon-link {
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        margin: -8px 0;
+    }
+    .cdl-person .cdl-votes {
+        align-items: flex-end;
+        margin-top: 1em;
+    }
+    .cdl-person .cdl-votes label {
+        flex: 1 1 auto;
+        flex-wrap: wrap;
+        gap: .3em;
+    }
+    .cdl-person .cdl-votes-text {
+        width: 100%;
+    }
+    .cdl-person .cdl-votes select {
+        max-width: none;
+        height: 40px;
+        font-size: 16px; /* >= 16px stops iOS Safari zooming in on focus */
+    }
+    .cdl-person .cdl-votes-link {
+        width: 40px;
+        height: 40px;
+    }
+    .cdl-person .cdl-votes-link svg {
+        width: 18px;
+        height: 18px;
+    }
+}
