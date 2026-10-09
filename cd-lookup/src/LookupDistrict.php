@@ -186,6 +186,31 @@ if (!function_exists('extract_congressional_district')) {
     }
 }
 
+// Jurisdictions whose single House seat is a non-voting Delegate/Resident
+// Commissioner. The Census geocoder reports their district as FIPS code 98
+// ("nonvoting delegate"), but cd-api stores those seats as at-large (0).
+// Mirrors cd-platform's NON_VOTING_TERRITORIES (cd-lib apportionment.py).
+const NON_VOTING_DELEGATE_JURISDICTIONS = ['AS', 'DC', 'GU', 'MP', 'PR', 'VI'];
+const FIPS_NONVOTING_DELEGATE_DISTRICT = '98';
+
+/**
+ * Map the Census FIPS nonvoting-delegate district code (98) to this
+ * plugin's at-large convention (0), so members_by_chamber() matches the
+ * delegate cd-api returns. Only for the non-voting jurisdictions above --
+ * a 98 anywhere else is passed through untouched rather than guessed at.
+ */
+if (!function_exists('normalize_delegate_district')) {
+    function normalize_delegate_district(string $state, string $district): string
+    {
+        if ($district === FIPS_NONVOTING_DELEGATE_DISTRICT
+            && in_array(strtoupper(trim($state)), NON_VOTING_DELEGATE_JURISDICTIONS, true)) {
+            return '0';
+        }
+
+        return $district;
+    }
+}
+
 /** Return the congressional district state and number as an array for the given address. */
 if (!function_exists('get_district')) {
     function get_district(string $address): array
@@ -233,7 +258,7 @@ if (!function_exists('get_district')) {
             throw new RuntimeException('Census geocoder response was missing a Congressional Districts geography while looking up district');
         }
 
-        return [$state, $district];
+        return [$state, normalize_delegate_district($state, $district)];
     }
 }
 

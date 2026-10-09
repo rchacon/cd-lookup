@@ -39,7 +39,7 @@ This is a WordPress plugin that looks up U.S. congressional representatives by s
 1. User submits address via the `[cd_lookup]` shortcode form
 2. Inline JS POSTs to the WordPress REST endpoint `POST /wp-json/cd-lookup/v1/representatives`
 3. `cd-lookup.php` resolves the district via its own `cd_lookup_get_district($address)` (caches the result per address, WP transient, 1 day TTL) and fetches members via its own `cd_lookup_fetch_members($state, $district, $api_key, $endpoint)` (caches per `state:district`, 1 hour TTL); both otherwise delegate to `src/LookupDistrict.php`:
-   - `get_district($address)` — calls the Census geocoder (`geocoding.geo.census.gov`) and returns `[$state, $district_number]`
+   - `get_district($address)` — calls the Census geocoder (`geocoding.geo.census.gov`) and returns `[$state, $district_number]` (the geocoder's FIPS "nonvoting delegate" district `98` for DC/PR/territories is normalized to at-large `0`, matching cd-api, by `normalize_delegate_district()`)
    - `fetch_members($state, $district, $api_key, $endpoint)` — calls cd-api's `GET /members` with an `x-api-key` header, returns `{ senators: [...], representatives: [...] }`
 4. The API key comes from the `cd_lookup_api_key` option, set via the Settings → CD Lookup admin page (`src/Settings.php`). The cd-api endpoint URL defaults to a hardcoded constant but can be overridden via the `cd_lookup_api_endpoint` option (e.g. `wp option update cd_lookup_api_endpoint "<url>"`) -- an ops escape hatch, not exposed in the Settings UI.
 5. Result is rendered in the browser by `renderResults()` in `templates/lookup-form.php`, which also appends "for the Nth congressional district" to a representative's role when the district isn't at-large.
