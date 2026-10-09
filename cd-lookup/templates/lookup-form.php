@@ -138,6 +138,41 @@
             width: 16px;
             height: 16px;
         }
+        .cdl-person .cdl-votes {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: .5em;
+            margin: .8em 0 0;
+            font-size: .85em;
+            color: var(--cdl-navy);
+        }
+        .cdl-person .cdl-votes select {
+            max-width: 100%;
+            padding: .3em .5em;
+            font-size: 1em;
+            border: 1px solid rgba(38, 51, 105, .25);
+            border-radius: 8px;
+        }
+        .cdl-person .cdl-votes-link {
+            padding: .35em 1em;
+            font-weight: 600;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: #fff;
+            background: var(--cdl-navy);
+            border-radius: var(--cdl-btn-radius);
+            white-space: nowrap;
+            transition: background .3s ease-in-out, color .3s ease-in-out;
+        }
+        .cdl-person .cdl-votes-link:hover {
+            color: var(--cdl-navy);
+            background: #d1d7ed;
+        }
+        .cdl-person .cdl-votes-link[aria-disabled="true"] {
+            opacity: .45;
+            pointer-events: none;
+        }
     </style>
 
     <form id="cd-lookup-form">
@@ -165,6 +200,10 @@
     const container = document.currentScript.previousElementSibling;
     const endpoint = <?php echo wp_json_encode( rest_url( 'cd-lookup/v1/representatives' ) ); ?>;
     const nonce    = <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?>;
+    const civicdogUrl = <?php echo wp_json_encode( rtrim( get_option( 'cd_lookup_civicdog_app_url', CD_LOOKUP_CIVICDOG_APP_URL_DEFAULT ), '/' ) ); ?>;
+    // Admin-curated topics (Settings > CD Lookup). `label` is pre-escaped for
+    // innerHTML; the raw `topic` only ever goes through encodeURIComponent.
+    const voteTopics  = <?php echo wp_json_encode( array_map( fn ( $topic ) => [ 'label' => cd_lookup_esc( $topic ), 'topic' => $topic ], cd_lookup_vote_topics() ) ); ?>;
 
     container.querySelector('#cd-lookup-form').addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -193,6 +232,23 @@
             results.innerHTML = renderResults(data);
         } catch (err) {
             results.innerHTML = '<p>Error: ' + err.message + '</p>';
+        }
+    });
+
+    // Point a card's "See votes" link at the chosen topic on CivicDog (which
+    // runs the topic search itself from ?topic=). Delegated, since the cards
+    // are re-rendered on every lookup.
+    container.querySelector('#cd-lookup-results').addEventListener('change', function (e) {
+        const select = e.target.closest('.cdl-topic');
+        if (!select) return;
+        const link  = select.closest('.cdl-votes').querySelector('.cdl-votes-link');
+        const topic = voteTopics[select.value];
+        if (topic) {
+            link.href = `${civicdogUrl}/member/${select.dataset.bioguide}?topic=${encodeURIComponent(topic.topic)}`;
+            link.removeAttribute('aria-disabled');
+        } else {
+            link.removeAttribute('href');
+            link.setAttribute('aria-disabled', 'true');
         }
     });
 
@@ -245,10 +301,27 @@
                         ${p.phone ? `<a class="cdl-icon-link" href="tel:${p.phone}" aria-label="Call ${p.phone}" title="${p.phone}">${PHONE_ICON}</a>` : ''}
                         ${p.website ? `<a class="cdl-icon-link" href="${p.website}" aria-label="Visit website" title="${p.website}">${GLOBE_ICON}</a>` : ''}
                     </p>
+                    ${renderVoteTopics(p)}
                 </div>
             </li>`;
         }).join('');
         return `<h3>${heading}</h3><ul>${items}</ul>`;
+    }
+
+    // Only voting House members: CivicDog has no Senate voting record yet, and
+    // Delegates / the Resident Commissioner have no floor votes to search.
+    function renderVoteTopics(p) {
+        if (p.role !== 'Representative' || !p.bioguide_id || !voteTopics.length) return '';
+        const options = voteTopics.map((t, i) => `<option value="${i}">${t.label}</option>`).join('');
+        return `<div class="cdl-votes">
+            <label>See how ${p.display_name} voted on
+                <select class="cdl-topic" data-bioguide="${p.bioguide_id}">
+                    <option value="">Choose a topic&hellip;</option>
+                    ${options}
+                </select>
+            </label>
+            <a class="cdl-votes-link" target="_blank" rel="noopener" aria-disabled="true">See votes &#8599;</a>
+        </div>`;
     }
 
     // District is not at-large ("0") -- e.g. 12 -> "12th", 1 -> "1st", 11 -> "11th".

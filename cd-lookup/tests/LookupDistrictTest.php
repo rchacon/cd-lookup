@@ -121,6 +121,25 @@ class LookupDistrictTest extends TestCase
         $this->assertArrayNotHasKey('attributes', $senator);
     }
 
+    public function test_members_by_chamber_carries_the_resource_id_as_bioguide_id(): void
+    {
+        $document = ['data' => [$this->memberResource('Representative', 5, 'Williams')]];
+
+        $rep = members_by_chamber($document, '5')['representatives'][0];
+
+        $this->assertSame('w000001', $rep['bioguide_id']);
+    }
+
+    public function test_members_by_chamber_prefers_a_bioguide_id_attribute_over_the_resource_id(): void
+    {
+        $resource = $this->memberResource('Representative', 5, 'Williams');
+        $resource['attributes']['bioguide_id'] = 'W000788';
+
+        $rep = members_by_chamber(['data' => [$resource]], '5')['representatives'][0];
+
+        $this->assertSame('W000788', $rep['bioguide_id']);
+    }
+
     public function test_members_by_chamber_matches_at_large_district_zero(): void
     {
         $document = ['data' => [$this->memberResource('Representative', 0, 'Stansbury')]];

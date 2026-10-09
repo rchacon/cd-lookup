@@ -41,6 +41,11 @@ const CD_LOOKUP_DISTRICT_TTL              = DAY_IN_SECONDS;
 const CD_LOOKUP_MEMBERS_TRANSIENT_PREFIX = 'cd_lookup_members_';
 const CD_LOOKUP_MEMBERS_TTL              = HOUR_IN_SECONDS;
 
+// Where the "See how X voted on <topic>" links on Representative cards point.
+// Overridable via the `cd_lookup_civicdog_app_url` option (e.g. for staging)
+// -- an ops escape hatch like `cd_lookup_api_endpoint`, not in the Settings UI.
+const CD_LOOKUP_CIVICDOG_APP_URL_DEFAULT = 'https://app.civicdog.com';
+
 /**
  * Escape a string for safe direct insertion into innerHTML by
  * templates/lookup-form.php's client-side renderer -- the single shared
@@ -171,6 +176,7 @@ function cd_lookup_sanitize_reps( array $reps ): array {
 
 function cd_lookup_sanitize_person( array $person ): array {
     return [
+        'bioguide_id'  => cd_lookup_sanitize_bioguide_id( $person['bioguide_id'] ?? '' ),
         'display_name' => cd_lookup_esc( cd_lookup_display_name( $person ) ),
         'role'         => cd_lookup_esc( $person['role'] ?? '' ),
         'party'        => cd_lookup_esc( $person['party'] ?? '' ),
@@ -211,6 +217,15 @@ function cd_lookup_display_name( array $person ): string {
 /** Strip everything but digits and common phone punctuation before it's used in a tel: link. */
 function cd_lookup_sanitize_phone( string $phone ): string {
     return trim( preg_replace( '/[^0-9+\-() ]/', '', $phone ) );
+}
+
+/**
+ * Only allow a well-formed bioguide ID (one uppercase letter + six digits,
+ * e.g. "W000788") through, since the browser drops it straight into a
+ * CivicDog URL path and an element id.
+ */
+function cd_lookup_sanitize_bioguide_id( $id ): string {
+    return is_string( $id ) && preg_match( '/^[A-Z][0-9]{6}$/', $id ) ? $id : '';
 }
 
 /** Only allow http(s) URLs through, so the API response can't smuggle a javascript: URI into an href/src. */

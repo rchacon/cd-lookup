@@ -50,6 +50,18 @@ if (!function_exists('sanitize_text_field')) {
         return trim($value);
     }
 }
+if (!function_exists('sanitize_textarea_field')) {
+    function sanitize_textarea_field(string $value): string
+    {
+        return strip_tags($value);
+    }
+}
+if (!function_exists('esc_textarea')) {
+    function esc_textarea(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    }
+}
 if (!function_exists('esc_attr')) {
     function esc_attr(string $value): string
     {

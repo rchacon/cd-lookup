@@ -2,6 +2,8 @@
 
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/../cd-lookup.php';
+
 class LookupFormTest extends TestCase
 {
     private string $output;
@@ -9,9 +11,8 @@ class LookupFormTest extends TestCase
 
     protected function setUp(): void
     {
-        ob_start();
-        include __DIR__ . '/../templates/lookup-form.php';
-        $this->output = ob_get_clean();
+        $GLOBALS['stub_options'] = [];
+        $this->output = $this->render();
 
         $dom = new DOMDocument();
         @$dom->loadHTML('<html><body>' . $this->output . '</body></html>');
@@ -175,6 +176,57 @@ class LookupFormTest extends TestCase
     {
         $this->assertStringContainsString(
             'role = `${p.role} for ${stateName}`;',
+            $this->output
+        );
+    }
+
+    private function render(): string
+    {
+        ob_start();
+        include __DIR__ . '/../templates/lookup-form.php';
+        return ob_get_clean();
+    }
+
+    public function test_script_inlines_an_empty_vote_topics_list_when_none_configured(): void
+    {
+        $this->assertStringContainsString('const voteTopics  = [];', $this->output);
+    }
+
+    public function test_script_inlines_configured_vote_topics_with_escaped_labels(): void
+    {
+        $GLOBALS['stub_options']['cd_lookup_vote_topics'] = "immigration enforcement\nguns & <ammo>";
+        $output = $this->render();
+
+        $this->assertStringContainsString(
+            '{"label":"immigration enforcement","topic":"immigration enforcement"}',
+            $output
+        );
+        $this->assertStringContainsString('{"label":"guns &amp; &lt;ammo&gt;","topic":"guns & <ammo>"}', $output);
+    }
+
+    public function test_script_inlines_the_default_civicdog_app_url(): void
+    {
+        $this->assertStringContainsString('const civicdogUrl = "https://app.civicdog.com";', $this->output);
+    }
+
+    public function test_script_inlines_an_overridden_civicdog_app_url_without_trailing_slash(): void
+    {
+        $GLOBALS['stub_options']['cd_lookup_civicdog_app_url'] = 'https://staging.civicdog.test/';
+        $this->assertStringContainsString('const civicdogUrl = "https://staging.civicdog.test";', $this->render());
+    }
+
+    public function test_script_only_offers_vote_topics_to_voting_representatives(): void
+    {
+        $this->assertStringContainsString(
+            "if (p.role !== 'Representative' || !p.bioguide_id || !voteTopics.length) return '';",
+            $this->output
+        );
+    }
+
+    public function test_script_links_to_the_member_page_with_the_encoded_topic(): void
+    {
+        $this->assertStringContainsString(
+            '`${civicdogUrl}/member/${select.dataset.bioguide}?topic=${encodeURIComponent(topic.topic)}`',
             $this->output
         );
     }

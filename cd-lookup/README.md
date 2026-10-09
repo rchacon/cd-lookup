@@ -16,6 +16,15 @@ Visitors enter a street address into a form and get back their senators and repr
 
 Add the `[cd_lookup]` shortcode to any page or post.
 
+### Voting record topics
+
+Under **Settings → CD Lookup → Voting record topics**, list topics one per
+line (e.g. `immigration enforcement`). Each voting House Representative's card
+then shows "See how *name* voted on [topic]", which opens that member's
+[CivicDog](https://app.civicdog.com) voting record searched for the chosen
+topic. Senators (coming soon on CivicDog) and non-voting Delegates / the
+Resident Commissioner don't get the dropdown. Leave the box empty to hide it.
+
 Lookups are served by [cd-platform](https://github.com/rchacon/cd-platform)'s
 `cd-api`, not by scraping a third-party site.
 
