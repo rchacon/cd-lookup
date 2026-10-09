@@ -121,6 +121,38 @@ class LookupDistrictTest extends TestCase
         $this->assertArrayNotHasKey('attributes', $senator);
     }
 
+    public function test_normalize_delegate_district_maps_98_to_at_large_for_non_voting_jurisdictions(): void
+    {
+        foreach (['AS', 'DC', 'GU', 'MP', 'PR', 'VI'] as $state) {
+            $this->assertSame('0', normalize_delegate_district($state, '98'), $state);
+        }
+    }
+
+    public function test_normalize_delegate_district_is_case_and_whitespace_insensitive_on_state(): void
+    {
+        $this->assertSame('0', normalize_delegate_district(' dc ', '98'));
+    }
+
+    public function test_normalize_delegate_district_leaves_98_alone_for_a_voting_state(): void
+    {
+        $this->assertSame('98', normalize_delegate_district('GA', '98'));
+    }
+
+    public function test_normalize_delegate_district_leaves_other_districts_alone(): void
+    {
+        $this->assertSame('5', normalize_delegate_district('GA', '5'));
+        $this->assertSame('0', normalize_delegate_district('DC', '0'));
+    }
+
+    public function test_members_by_chamber_matches_a_normalized_delegate_district(): void
+    {
+        $document = ['data' => [$this->memberResource('Delegate', 0, 'Norton')]];
+
+        $grouped = members_by_chamber($document, normalize_delegate_district('DC', '98'));
+
+        $this->assertSame(['Norton'], array_column($grouped['representatives'], 'last_name'));
+    }
+
     public function test_members_by_chamber_matches_at_large_district_zero(): void
     {
         $document = ['data' => [$this->memberResource('Representative', 0, 'Stansbury')]];
