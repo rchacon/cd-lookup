@@ -71,6 +71,20 @@ class CdLookupTest extends TestCase
         $this->assertSame('Wyoming', $data['state_name']);
     }
 
+    public function test_response_data_includes_the_resolved_state_code(): void
+    {
+        $GLOBALS['stub_get_district_return'] = ['GA', '5'];
+        $data = cd_lookup_get_representatives($this->makeRequest('225 Baker St NW, Atlanta, GA 30313'))->get_data();
+        $this->assertSame('GA', $data['state']);
+    }
+
+    public function test_response_data_state_code_is_null_for_unrecognized_state_abbreviation(): void
+    {
+        $GLOBALS['stub_get_district_return'] = ['<b>', '1'];
+        $data = cd_lookup_get_representatives($this->makeRequest('123 Main St'))->get_data();
+        $this->assertNull($data['state']);
+    }
+
     public function test_response_data_state_name_is_null_for_unrecognized_state_abbreviation(): void
     {
         $GLOBALS['stub_get_district_return'] = ['ZZ', '1'];

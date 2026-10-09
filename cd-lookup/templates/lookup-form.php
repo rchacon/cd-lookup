@@ -336,18 +336,18 @@
 
     function renderResults(data) {
         return renderGroup('Senators', data.senators, data.state_name)
-             + renderGroup('Representatives', data.representatives, data.state_name, data.district);
+             + renderGroup('Representatives', data.representatives, data.state_name, data.district, data.state);
     }
 
-    function renderGroup(heading, people, stateName, district) {
+    function renderGroup(heading, people, stateName, district, stateCode) {
         if (!people.length) return '';
         const items = people.map(p => {
             let role = p.role;
             if (district === undefined) {
                 if (stateName) role = `${p.role} of ${stateName}`;
             } else if (district !== '0') {
-                role = stateName
-                    ? `${p.role} for ${stateName}'s ${ordinal(district)} congressional district`
+                role = stateCode
+                    ? `${p.role} for ${stateCode}-${ordinal(district)} District`
                     : `${p.role} for the ${ordinal(district)} congressional district`;
             } else if (stateName) {
                 role = `${p.role} for ${stateName}`;

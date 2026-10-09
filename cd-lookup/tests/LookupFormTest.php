@@ -130,10 +130,10 @@ class LookupFormTest extends TestCase
         $this->assertStringContainsString('data.representatives', $this->output);
     }
 
-    public function test_script_passes_state_name_and_district_to_the_representatives_group(): void
+    public function test_script_passes_state_name_district_and_state_code_to_the_representatives_group(): void
     {
         $this->assertStringContainsString(
-            "renderGroup('Representatives', data.representatives, data.state_name, data.district)",
+            "renderGroup('Representatives', data.representatives, data.state_name, data.district, data.state)",
             $this->output
         );
         $this->assertStringContainsString(
@@ -164,10 +164,10 @@ class LookupFormTest extends TestCase
         );
     }
 
-    public function test_script_renders_representative_role_with_state_name_and_district(): void
+    public function test_script_renders_representative_role_with_compact_state_code_and_district(): void
     {
         $this->assertStringContainsString(
-            "\${p.role} for \${stateName}'s \${ordinal(district)} congressional district",
+            '${p.role} for ${stateCode}-${ordinal(district)} District',
             $this->output
         );
     }

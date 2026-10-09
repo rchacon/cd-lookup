@@ -84,6 +84,10 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
     $response['state_name'] = ( $name = state_name( $state ) ) !== null
         ? cd_lookup_esc( $name )
         : null;
+    // Postal code (e.g. "GA") for the compact "GA-5th District" role label.
+    // Only sent for a state state_name() recognizes, so it's always a known
+    // two-letter code rather than whatever the geocoder returned.
+    $response['state'] = $name !== null ? strtoupper( trim( $state ) ) : null;
 
     return new WP_REST_Response( $response, 200 );
 }
