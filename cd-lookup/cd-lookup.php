@@ -3,7 +3,7 @@
  * Plugin Name: CD Lookup
  * Plugin URI:  https://civicdog.com/
  * Description: Look up congressional representatives for a given street address.
- * Version:     0.5.0
+ * Version:     0.6.0
  * Requires at least: 6.0
  * Requires PHP: 8.0
  * Author:      Raul Chacon
