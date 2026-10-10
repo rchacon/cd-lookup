@@ -224,12 +224,17 @@ function cd_lookup_sanitize_phone( string $phone ): string {
 }
 
 /**
- * Only allow a well-formed bioguide ID (one uppercase letter + six digits,
- * e.g. "W000788") through, since the browser drops it straight into a
- * CivicDog URL path and an element id.
+ * Only allow a well-formed bioguide ID (one letter + six digits, e.g.
+ * "W000788") through, since the browser drops it straight into a CivicDog
+ * URL path and a data-bioguide attribute. Uppercased first, so a lowercase
+ * ID from cd-api isn't silently dropped (which would hide the topic picker).
  */
 function cd_lookup_sanitize_bioguide_id( $id ): string {
-    return is_string( $id ) && preg_match( '/^[A-Z][0-9]{6}$/', $id ) ? $id : '';
+    if ( ! is_string( $id ) ) {
+        return '';
+    }
+    $id = strtoupper( $id );
+    return preg_match( '/^[A-Z][0-9]{6}$/', $id ) ? $id : '';
 }
 
 /** Only allow http(s) URLs through, so the API response can't smuggle a javascript: URI into an href/src. */

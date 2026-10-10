@@ -180,10 +180,14 @@ class CdLookupSanitizeTest extends TestCase
         $this->assertSame('', $sanitized['bioguide_id']);
     }
 
+    public function test_sanitize_bioguide_id_uppercases_a_lowercase_id(): void
+    {
+        $this->assertSame('W000788', cd_lookup_sanitize_bioguide_id('w000788'));
+    }
+
     public function test_sanitize_bioguide_id_rejects_malformed_ids(): void
     {
         $this->assertSame('', cd_lookup_sanitize_bioguide_id('"><script>alert(1)</script>'));
-        $this->assertSame('', cd_lookup_sanitize_bioguide_id('w000788'));
         $this->assertSame('', cd_lookup_sanitize_bioguide_id('W0007880'));
         $this->assertSame('', cd_lookup_sanitize_bioguide_id('W000788/../x'));
         $this->assertSame('', cd_lookup_sanitize_bioguide_id(null));
