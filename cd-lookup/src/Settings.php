@@ -89,6 +89,11 @@ if (!function_exists('cd_lookup_vote_topic_lines')) {
                 $line = $heading === '' ? '' : '[' . mb_substr($heading, 0, CD_LOOKUP_VOTE_TOPIC_MAX) . ']';
             } else {
                 $line = mb_substr($line, 0, CD_LOOKUP_VOTE_TOPIC_MAX);
+                // Truncation can leave a "[..." topic ending in "]", which
+                // would re-parse as a heading; strip the trailing bracket(s).
+                if (cd_lookup_vote_topic_heading($line) !== null) {
+                    $line = rtrim($line, ']');
+                }
             }
 
             if ($line !== '') {

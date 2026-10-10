@@ -94,6 +94,16 @@ class SettingsTest extends TestCase
         $this->assertSame(200, mb_strlen($topics[0]['topic']));
     }
 
+    public function test_truncating_a_topic_never_turns_it_into_a_heading(): void
+    {
+        $topic = '[Note] ' . str_repeat('a', 192) . ']' . str_repeat('b', 20);
+
+        $this->assertSame(
+            [['topic' => '[Note] ' . str_repeat('a', 192), 'group' => null]],
+            cd_lookup_parse_vote_topics(cd_lookup_sanitize_vote_topics($topic))
+        );
+    }
+
     public function test_sanitize_vote_topics_strips_tags_and_normalizes_lines(): void
     {
         $this->assertSame(
