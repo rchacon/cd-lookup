@@ -23,7 +23,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           mkdir -p /tmp/build/cd-lookup
-          cp -r cd-lookup.php src templates README.md /tmp/build/cd-lookup/
+          cp -r cd-lookup.php src templates assets README.md /tmp/build/cd-lookup/
           cd /tmp/build
           zip -r "$GITHUB_WORKSPACE/cd-lookup-${VERSION}.zip" cd-lookup
 

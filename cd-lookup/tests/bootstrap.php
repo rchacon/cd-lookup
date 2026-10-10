@@ -50,6 +50,48 @@ if (!function_exists('sanitize_text_field')) {
         return trim($value);
     }
 }
+if (!function_exists('sanitize_textarea_field')) {
+    function sanitize_textarea_field(string $value): string
+    {
+        return strip_tags($value);
+    }
+}
+if (!function_exists('esc_textarea')) {
+    function esc_textarea(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    }
+}
+if (!function_exists('wp_enqueue_style')) {
+    function wp_enqueue_style(string $handle, string $src = '', array $deps = [], string|bool|null $ver = false): void
+    {
+        $GLOBALS['stub_enqueued_styles'][$handle] = ['src' => $src, 'ver' => $ver];
+    }
+}
+if (!function_exists('is_singular')) {
+    function is_singular(): bool
+    {
+        return $GLOBALS['stub_is_singular'] ?? false;
+    }
+}
+if (!function_exists('get_post')) {
+    function get_post(): ?object
+    {
+        return $GLOBALS['stub_post'] ?? null;
+    }
+}
+if (!function_exists('has_shortcode')) {
+    function has_shortcode(string $content, string $tag): bool
+    {
+        return str_contains($content, '[' . $tag);
+    }
+}
+if (!function_exists('plugins_url')) {
+    function plugins_url(string $path = '', string $plugin = ''): string
+    {
+        return 'https://example.com/wp-content/plugins/cd-lookup/' . ltrim($path, '/');
+    }
+}
 if (!function_exists('esc_attr')) {
     function esc_attr(string $value): string
     {

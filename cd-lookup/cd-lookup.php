@@ -41,6 +41,11 @@ const CD_LOOKUP_DISTRICT_TTL              = DAY_IN_SECONDS;
 const CD_LOOKUP_MEMBERS_TRANSIENT_PREFIX = 'cd_lookup_members_';
 const CD_LOOKUP_MEMBERS_TTL              = HOUR_IN_SECONDS;
 
+// Where the "See how X voted on <topic>" links on Representative cards point.
+// Overridable via the `cd_lookup_civicdog_app_url` option (e.g. for staging)
+// -- an ops escape hatch like `cd_lookup_api_endpoint`, not in the Settings UI.
+const CD_LOOKUP_CIVICDOG_APP_URL_DEFAULT = 'https://app.civicdog.com';
+
 /**
  * Escape a string for safe direct insertion into innerHTML by
  * templates/lookup-form.php's client-side renderer -- the single shared
@@ -79,6 +84,10 @@ function cd_lookup_get_representatives( WP_REST_Request $request ): WP_REST_Resp
     $response['state_name'] = ( $name = state_name( $state ) ) !== null
         ? cd_lookup_esc( $name )
         : null;
+    // Postal code (e.g. "GA") for the compact "GA-5th District" role label.
+    // Only sent for a state state_name() recognizes, so it's always a known
+    // two-letter code rather than whatever the geocoder returned.
+    $response['state'] = $name !== null ? strtoupper( trim( $state ) ) : null;
 
     return new WP_REST_Response( $response, 200 );
 }
@@ -171,6 +180,7 @@ function cd_lookup_sanitize_reps( array $reps ): array {
 
 function cd_lookup_sanitize_person( array $person ): array {
     return [
+        'bioguide_id'  => cd_lookup_sanitize_bioguide_id( $person['bioguide_id'] ?? '' ),
         'display_name' => cd_lookup_esc( cd_lookup_display_name( $person ) ),
         'role'         => cd_lookup_esc( $person['role'] ?? '' ),
         'party'        => cd_lookup_esc( $person['party'] ?? '' ),
@@ -213,6 +223,38 @@ function cd_lookup_sanitize_phone( string $phone ): string {
     return trim( preg_replace( '/[^0-9+\-() ]/', '', $phone ) );
 }
 
+/**
+ * Only allow a well-formed bioguide ID (one letter + six digits, e.g.
+ * "W000788") through, since the browser drops it straight into a CivicDog
+ * URL path and a data-bioguide attribute. Uppercased first, so a lowercase
+ * ID from cd-api isn't silently dropped (which would hide the topic picker).
+ */
+function cd_lookup_sanitize_bioguide_id( $id ): string {
+    if ( ! is_string( $id ) ) {
+        return '';
+    }
+    $id = strtoupper( $id );
+    return preg_match( '/^[A-Z][0-9]{6}$/', $id ) ? $id : '';
+}
+
+/**
+ * The CivicDog base URL for the voting-topic links, without a trailing
+ * slash. The `cd_lookup_civicdog_app_url` override is only honored when
+ * it's an absolute http(s) URL -- an empty or malformed value (e.g. from a
+ * mistyped `wp option update`) falls back to the default rather than
+ * turning every link into a broken relative path on this site.
+ */
+function cd_lookup_civicdog_app_url(): string {
+    $url   = get_option( 'cd_lookup_civicdog_app_url', CD_LOOKUP_CIVICDOG_APP_URL_DEFAULT );
+    $parts = is_string( $url ) ? parse_url( trim( $url ) ) : false;
+
+    if ( ! is_array( $parts ) || ! in_array( $parts['scheme'] ?? null, [ 'http', 'https' ], true ) || empty( $parts['host'] ) ) {
+        return CD_LOOKUP_CIVICDOG_APP_URL_DEFAULT;
+    }
+
+    return rtrim( trim( $url ), '/' );
+}
+
 /** Only allow http(s) URLs through, so the API response can't smuggle a javascript: URI into an href/src. */
 function cd_lookup_sanitize_url( string $url ): string {
     if ( ! in_array( parse_url( $url, PHP_URL_SCHEME ), [ 'http', 'https' ], true ) ) {
@@ -221,8 +263,43 @@ function cd_lookup_sanitize_url( string $url ): string {
     return cd_lookup_esc( $url );
 }
 
-add_shortcode( 'cd_lookup', function () {
+/**
+ * Enqueue the form/card stylesheet. The file's mtime is the version, so
+ * browsers and page caches pick up CSS changes without a plugin version
+ * bump; a missing file (e.g. a partial manual install) falls back to WP's
+ * default version instead of a filemtime() warning in the page.
+ */
+function cd_lookup_enqueue_style(): void {
+    $css  = 'assets/lookup-form.css';
+    $path = __DIR__ . '/' . $css;
+    wp_enqueue_style( 'cd-lookup', plugins_url( $css, __FILE__ ), [], file_exists( $path ) ? (string) filemtime( $path ) : false );
+}
+
+/**
+ * Enqueue the stylesheet up front, so it lands in <head>, on singular
+ * pages whose content uses [cd_lookup]. Enqueuing only from the shortcode
+ * callback runs after wp_head on classic themes, so WP would print it in
+ * the footer and the form would flash unstyled.
+ */
+function cd_lookup_maybe_enqueue_style(): void {
+    $post = is_singular() ? get_post() : null;
+    if ( $post && has_shortcode( (string) $post->post_content, 'cd_lookup' ) ) {
+        cd_lookup_enqueue_style();
+    }
+}
+add_action( 'wp_enqueue_scripts', 'cd_lookup_maybe_enqueue_style' );
+
+/**
+ * Render the [cd_lookup] shortcode. Also enqueues the stylesheet as a
+ * fallback for placements cd_lookup_maybe_enqueue_style() can't see (a
+ * widget, a template's do_shortcode(), an archive page); a no-op if it's
+ * already enqueued.
+ */
+function cd_lookup_shortcode(): string {
+    cd_lookup_enqueue_style();
+
     ob_start();
     include __DIR__ . '/templates/lookup-form.php';
     return ob_get_clean();
-} );
+}
+add_shortcode( 'cd_lookup', 'cd_lookup_shortcode' );

@@ -40,8 +40,8 @@ if (!function_exists('curl_get')) {
 /**
  * Fetch senators/representatives for a state and district from cd-platform's
  * cd-api. Returns ['senators' => [...], 'representatives' => [...]], each
- * person an array with keys: role, party, phone, website, photo_url, district,
- * state, plus either full_name (older cd-api deploys) or first_name/
+ * person an array with keys: bioguide_id, role, party, phone, website,
+ * photo_url, district, state, plus either full_name (older cd-api deploys) or first_name/
  * middle_name/last_name/nickname/suffix (current cd-api) -- see
  * cd_lookup_display_name().
  *
@@ -88,6 +88,9 @@ if (!function_exists('fetch_members')) {
  * attribute matches $district (compared numerically so "0"/at-large lines up
  * regardless of formatting). House members from other districts are dropped,
  * matching what the pre-JSON:API endpoint returned for a state+district.
+ *
+ * The resource `id` (the member's bioguide ID) is carried along as
+ * `bioguide_id`, since flattening to `attributes` would otherwise drop it.
  */
 if (!function_exists('members_by_chamber')) {
     function members_by_chamber($document, string $district): array
@@ -104,7 +107,7 @@ if (!function_exists('members_by_chamber')) {
                 continue;
             }
 
-            $member = $resource['attributes'];
+            $member = $resource['attributes'] + ['bioguide_id' => $resource['id'] ?? null];
 
             if (($member['role'] ?? null) === 'Senator') {
                 $senators[] = $member;

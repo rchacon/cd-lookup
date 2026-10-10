@@ -2,6 +2,8 @@
 
 use PHPUnit\Framework\TestCase;
 
+require_once __DIR__ . '/../cd-lookup.php';
+
 class LookupFormTest extends TestCase
 {
     private string $output;
@@ -9,9 +11,8 @@ class LookupFormTest extends TestCase
 
     protected function setUp(): void
     {
-        ob_start();
-        include __DIR__ . '/../templates/lookup-form.php';
-        $this->output = ob_get_clean();
+        $GLOBALS['stub_options'] = [];
+        $this->output = $this->render();
 
         $dom = new DOMDocument();
         @$dom->loadHTML('<html><body>' . $this->output . '</body></html>');
@@ -129,15 +130,23 @@ class LookupFormTest extends TestCase
         $this->assertStringContainsString('data.representatives', $this->output);
     }
 
-    public function test_script_passes_state_name_and_district_to_the_representatives_group(): void
+    public function test_script_passes_state_name_district_and_state_code_to_the_representatives_group(): void
     {
         $this->assertStringContainsString(
-            "renderGroup('Representatives', data.representatives, data.state_name, data.district)",
+            "renderGroup('Representatives', data.representatives, data.state_name, data.district, data.state)",
             $this->output
         );
         $this->assertStringContainsString(
             "renderGroup('Senators', data.senators, data.state_name)",
             $this->output
+        );
+    }
+
+    public function test_script_renders_representatives_before_senators(): void
+    {
+        $this->assertLessThan(
+            strpos($this->output, "renderGroup('Senators'"),
+            strpos($this->output, "renderGroup('Representatives'")
         );
     }
 
@@ -163,10 +172,10 @@ class LookupFormTest extends TestCase
         );
     }
 
-    public function test_script_renders_representative_role_with_state_name_and_district(): void
+    public function test_script_renders_representative_role_with_compact_state_code_and_district(): void
     {
         $this->assertStringContainsString(
-            "\${p.role} for \${stateName}'s \${ordinal(district)} congressional district",
+            '${p.role} for ${stateCode}-${ordinal(district)} District',
             $this->output
         );
     }
@@ -177,5 +186,158 @@ class LookupFormTest extends TestCase
             'role = `${p.role} for ${stateName}`;',
             $this->output
         );
+    }
+
+    private function render(): string
+    {
+        ob_start();
+        include __DIR__ . '/../templates/lookup-form.php';
+        return ob_get_clean();
+    }
+
+    public function test_script_inlines_an_empty_vote_topics_list_when_none_configured(): void
+    {
+        $this->assertStringContainsString('const voteTopics  = [];', $this->output);
+    }
+
+    public function test_script_inlines_configured_vote_topics_with_escaped_labels(): void
+    {
+        $GLOBALS['stub_options']['cd_lookup_vote_topics'] = "immigration enforcement\nguns & <ammo>";
+        $output = $this->render();
+
+        $this->assertStringContainsString(
+            '{"label":"immigration enforcement","topic":"immigration enforcement","group":null}',
+            $output
+        );
+        $this->assertStringContainsString('{"label":"guns &amp; &lt;ammo&gt;","topic":"guns & <ammo>","group":null}', $output);
+    }
+
+    public function test_script_inlines_vote_topic_groups_with_escaped_headings(): void
+    {
+        $GLOBALS['stub_options']['cd_lookup_vote_topics'] = "[Gender & \"Sex\"]\ntransgender rights";
+        $output = $this->render();
+
+        $this->assertStringContainsString(
+            '{"label":"transgender rights","topic":"transgender rights","group":"Gender &amp; &quot;Sex&quot;"}',
+            $output
+        );
+    }
+
+    public function test_script_builds_the_topic_options_once_rather_than_per_card(): void
+    {
+        $calls = substr_count($this->output, 'voteTopicOptions()') - substr_count($this->output, 'function voteTopicOptions()');
+        $this->assertSame(1, $calls);
+        $this->assertStringContainsString('const voteTopicOptionsHtml = voteTopicOptions();', $this->output);
+    }
+
+    public function test_script_wraps_grouped_topics_in_optgroups(): void
+    {
+        $this->assertStringContainsString('<optgroup label="${t.group}">', $this->output);
+        $this->assertStringContainsString("'</optgroup>'", $this->output);
+    }
+
+    public function test_script_inlines_the_default_civicdog_app_url(): void
+    {
+        $this->assertStringContainsString('const civicdogUrl = "https://app.civicdog.com";', $this->output);
+    }
+
+    public function test_script_inlines_an_overridden_civicdog_app_url_without_trailing_slash(): void
+    {
+        $GLOBALS['stub_options']['cd_lookup_civicdog_app_url'] = 'https://staging.civicdog.test/';
+        $this->assertStringContainsString('const civicdogUrl = "https://staging.civicdog.test";', $this->render());
+    }
+
+    public function test_civicdog_app_url_falls_back_to_the_default_for_an_empty_override(): void
+    {
+        $GLOBALS['stub_options']['cd_lookup_civicdog_app_url'] = '';
+        $this->assertSame('https://app.civicdog.com', cd_lookup_civicdog_app_url());
+    }
+
+    public function test_civicdog_app_url_falls_back_to_the_default_for_a_non_http_override(): void
+    {
+        foreach (['javascript:alert(1)', '/member', 'app.civicdog.com', 'ftp://example.com'] as $bad) {
+            $GLOBALS['stub_options']['cd_lookup_civicdog_app_url'] = $bad;
+            $this->assertSame('https://app.civicdog.com', cd_lookup_civicdog_app_url(), $bad);
+        }
+    }
+
+    public function test_script_only_offers_vote_topics_to_voting_representatives(): void
+    {
+        $this->assertStringContainsString(
+            "if (p.role !== 'Representative' || !p.bioguide_id || !voteTopics.length) return '';",
+            $this->output
+        );
+    }
+
+    public function test_script_links_to_the_member_page_with_the_encoded_topic(): void
+    {
+        $this->assertStringContainsString(
+            '`${civicdogUrl}/member/${select.dataset.bioguide}?topic=${encodeURIComponent(topic.topic)}`',
+            $this->output
+        );
+    }
+
+    public function test_template_has_no_inline_style_block(): void
+    {
+        $this->assertStringNotContainsString('<style', $this->output);
+    }
+
+    public function test_shortcode_enqueues_the_stylesheet_versioned_by_mtime(): void
+    {
+        $GLOBALS['stub_enqueued_styles'] = [];
+        cd_lookup_shortcode();
+
+        $this->assertSame(
+            [
+                'src' => 'https://example.com/wp-content/plugins/cd-lookup/assets/lookup-form.css',
+                'ver' => (string) filemtime(__DIR__ . '/../assets/lookup-form.css'),
+            ],
+            $GLOBALS['stub_enqueued_styles']['cd-lookup']
+        );
+    }
+
+    public function test_maybe_enqueue_style_enqueues_on_a_singular_page_using_the_shortcode(): void
+    {
+        $GLOBALS['stub_enqueued_styles'] = [];
+        $GLOBALS['stub_is_singular'] = true;
+        $GLOBALS['stub_post'] = (object) ['post_content' => "Intro\n[cd_lookup]"];
+
+        cd_lookup_maybe_enqueue_style();
+
+        $this->assertArrayHasKey('cd-lookup', $GLOBALS['stub_enqueued_styles']);
+    }
+
+    public function test_maybe_enqueue_style_skips_pages_without_the_shortcode(): void
+    {
+        $GLOBALS['stub_enqueued_styles'] = [];
+        $GLOBALS['stub_is_singular'] = true;
+        $GLOBALS['stub_post'] = (object) ['post_content' => 'No lookup here'];
+
+        cd_lookup_maybe_enqueue_style();
+
+        $this->assertSame([], $GLOBALS['stub_enqueued_styles']);
+    }
+
+    public function test_maybe_enqueue_style_skips_non_singular_pages(): void
+    {
+        $GLOBALS['stub_enqueued_styles'] = [];
+        $GLOBALS['stub_is_singular'] = false;
+        $GLOBALS['stub_post'] = (object) ['post_content' => '[cd_lookup]'];
+
+        cd_lookup_maybe_enqueue_style();
+
+        $this->assertSame([], $GLOBALS['stub_enqueued_styles']);
+    }
+
+    public function test_shortcode_returns_the_rendered_form(): void
+    {
+        $this->assertStringContainsString('<form id="cd-lookup-form">', cd_lookup_shortcode());
+    }
+
+    public function test_stylesheet_styles_the_form_and_cards(): void
+    {
+        $css = file_get_contents(__DIR__ . '/../assets/lookup-form.css');
+        $this->assertStringContainsString('#cd-lookup-form {', $css);
+        $this->assertStringContainsString('.cdl-person {', $css);
     }
 }
