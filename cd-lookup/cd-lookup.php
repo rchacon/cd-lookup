@@ -264,13 +264,39 @@ function cd_lookup_sanitize_url( string $url ): string {
 }
 
 /**
- * Render the [cd_lookup] shortcode, enqueuing its stylesheet only on pages
- * that actually use it. The file's mtime is the version, so browsers and
- * page caches pick up CSS changes without a plugin version bump.
+ * Enqueue the form/card stylesheet. The file's mtime is the version, so
+ * browsers and page caches pick up CSS changes without a plugin version
+ * bump; a missing file (e.g. a partial manual install) falls back to WP's
+ * default version instead of a filemtime() warning in the page.
+ */
+function cd_lookup_enqueue_style(): void {
+    $css  = 'assets/lookup-form.css';
+    $path = __DIR__ . '/' . $css;
+    wp_enqueue_style( 'cd-lookup', plugins_url( $css, __FILE__ ), [], file_exists( $path ) ? (string) filemtime( $path ) : false );
+}
+
+/**
+ * Enqueue the stylesheet up front, so it lands in <head>, on singular
+ * pages whose content uses [cd_lookup]. Enqueuing only from the shortcode
+ * callback runs after wp_head on classic themes, so WP would print it in
+ * the footer and the form would flash unstyled.
+ */
+function cd_lookup_maybe_enqueue_style(): void {
+    $post = is_singular() ? get_post() : null;
+    if ( $post && has_shortcode( (string) $post->post_content, 'cd_lookup' ) ) {
+        cd_lookup_enqueue_style();
+    }
+}
+add_action( 'wp_enqueue_scripts', 'cd_lookup_maybe_enqueue_style' );
+
+/**
+ * Render the [cd_lookup] shortcode. Also enqueues the stylesheet as a
+ * fallback for placements cd_lookup_maybe_enqueue_style() can't see (a
+ * widget, a template's do_shortcode(), an archive page); a no-op if it's
+ * already enqueued.
  */
 function cd_lookup_shortcode(): string {
-    $css = 'assets/lookup-form.css';
-    wp_enqueue_style( 'cd-lookup', plugins_url( $css, __FILE__ ), [], (string) filemtime( __DIR__ . '/' . $css ) );
+    cd_lookup_enqueue_style();
 
     ob_start();
     include __DIR__ . '/templates/lookup-form.php';

@@ -296,6 +296,39 @@ class LookupFormTest extends TestCase
         );
     }
 
+    public function test_maybe_enqueue_style_enqueues_on_a_singular_page_using_the_shortcode(): void
+    {
+        $GLOBALS['stub_enqueued_styles'] = [];
+        $GLOBALS['stub_is_singular'] = true;
+        $GLOBALS['stub_post'] = (object) ['post_content' => "Intro\n[cd_lookup]"];
+
+        cd_lookup_maybe_enqueue_style();
+
+        $this->assertArrayHasKey('cd-lookup', $GLOBALS['stub_enqueued_styles']);
+    }
+
+    public function test_maybe_enqueue_style_skips_pages_without_the_shortcode(): void
+    {
+        $GLOBALS['stub_enqueued_styles'] = [];
+        $GLOBALS['stub_is_singular'] = true;
+        $GLOBALS['stub_post'] = (object) ['post_content' => 'No lookup here'];
+
+        cd_lookup_maybe_enqueue_style();
+
+        $this->assertSame([], $GLOBALS['stub_enqueued_styles']);
+    }
+
+    public function test_maybe_enqueue_style_skips_non_singular_pages(): void
+    {
+        $GLOBALS['stub_enqueued_styles'] = [];
+        $GLOBALS['stub_is_singular'] = false;
+        $GLOBALS['stub_post'] = (object) ['post_content' => '[cd_lookup]'];
+
+        cd_lookup_maybe_enqueue_style();
+
+        $this->assertSame([], $GLOBALS['stub_enqueued_styles']);
+    }
+
     public function test_shortcode_returns_the_rendered_form(): void
     {
         $this->assertStringContainsString('<form id="cd-lookup-form">', cd_lookup_shortcode());

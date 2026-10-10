@@ -68,6 +68,24 @@ if (!function_exists('wp_enqueue_style')) {
         $GLOBALS['stub_enqueued_styles'][$handle] = ['src' => $src, 'ver' => $ver];
     }
 }
+if (!function_exists('is_singular')) {
+    function is_singular(): bool
+    {
+        return $GLOBALS['stub_is_singular'] ?? false;
+    }
+}
+if (!function_exists('get_post')) {
+    function get_post(): ?object
+    {
+        return $GLOBALS['stub_post'] ?? null;
+    }
+}
+if (!function_exists('has_shortcode')) {
+    function has_shortcode(string $content, string $tag): bool
+    {
+        return str_contains($content, '[' . $tag);
+    }
+}
 if (!function_exists('plugins_url')) {
     function plugins_url(string $path = '', string $plugin = ''): string
     {
