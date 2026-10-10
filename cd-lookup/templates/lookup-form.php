@@ -29,6 +29,8 @@
     // pre-escaped for innerHTML; the raw `topic` only ever goes through
     // encodeURIComponent.
     const voteTopics  = <?php echo wp_json_encode( array_map( fn ( $entry ) => [ 'label' => cd_lookup_esc( $entry['topic'] ), 'topic' => $entry['topic'], 'group' => $entry['group'] === null ? null : cd_lookup_esc( $entry['group'] ) ], cd_lookup_vote_topics() ) ); ?>;
+    // Same for every card and every lookup, so build it once.
+    const voteTopicOptionsHtml = voteTopicOptions();
 
     container.querySelector('#cd-lookup-form').addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -138,12 +140,11 @@
     // Delegates / the Resident Commissioner have no floor votes to search.
     function renderVoteTopics(p) {
         if (p.role !== 'Representative' || !p.bioguide_id || !voteTopics.length) return '';
-        const options = voteTopicOptions();
         return `<div class="cdl-votes">
             <label><span class="cdl-votes-text">Votes on</span>
                 <select class="cdl-topic" data-bioguide="${p.bioguide_id}" aria-label="See how ${p.display_name} voted on">
                     <option value="">Choose a topic&hellip;</option>
-                    ${options}
+                    ${voteTopicOptionsHtml}
                 </select>
             </label>
             <a class="cdl-votes-link" target="_blank" rel="noopener" aria-disabled="true" aria-label="See ${p.display_name}'s votes on CivicDog" title="See votes on CivicDog">${ARROW_ICON}</a>

@@ -223,6 +223,13 @@ class LookupFormTest extends TestCase
         );
     }
 
+    public function test_script_builds_the_topic_options_once_rather_than_per_card(): void
+    {
+        $calls = substr_count($this->output, 'voteTopicOptions()') - substr_count($this->output, 'function voteTopicOptions()');
+        $this->assertSame(1, $calls);
+        $this->assertStringContainsString('const voteTopicOptionsHtml = voteTopicOptions();', $this->output);
+    }
+
     public function test_script_wraps_grouped_topics_in_optgroups(): void
     {
         $this->assertStringContainsString('<optgroup label="${t.group}">', $this->output);
