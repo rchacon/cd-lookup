@@ -237,6 +237,24 @@ function cd_lookup_sanitize_bioguide_id( $id ): string {
     return preg_match( '/^[A-Z][0-9]{6}$/', $id ) ? $id : '';
 }
 
+/**
+ * The CivicDog base URL for the voting-topic links, without a trailing
+ * slash. The `cd_lookup_civicdog_app_url` override is only honored when
+ * it's an absolute http(s) URL -- an empty or malformed value (e.g. from a
+ * mistyped `wp option update`) falls back to the default rather than
+ * turning every link into a broken relative path on this site.
+ */
+function cd_lookup_civicdog_app_url(): string {
+    $url   = get_option( 'cd_lookup_civicdog_app_url', CD_LOOKUP_CIVICDOG_APP_URL_DEFAULT );
+    $parts = is_string( $url ) ? parse_url( trim( $url ) ) : false;
+
+    if ( ! is_array( $parts ) || ! in_array( $parts['scheme'] ?? null, [ 'http', 'https' ], true ) || empty( $parts['host'] ) ) {
+        return CD_LOOKUP_CIVICDOG_APP_URL_DEFAULT;
+    }
+
+    return rtrim( trim( $url ), '/' );
+}
+
 /** Only allow http(s) URLs through, so the API response can't smuggle a javascript: URI into an href/src. */
 function cd_lookup_sanitize_url( string $url ): string {
     if ( ! in_array( parse_url( $url, PHP_URL_SCHEME ), [ 'http', 'https' ], true ) ) {

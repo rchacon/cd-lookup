@@ -240,6 +240,20 @@ class LookupFormTest extends TestCase
         $this->assertStringContainsString('const civicdogUrl = "https://staging.civicdog.test";', $this->render());
     }
 
+    public function test_civicdog_app_url_falls_back_to_the_default_for_an_empty_override(): void
+    {
+        $GLOBALS['stub_options']['cd_lookup_civicdog_app_url'] = '';
+        $this->assertSame('https://app.civicdog.com', cd_lookup_civicdog_app_url());
+    }
+
+    public function test_civicdog_app_url_falls_back_to_the_default_for_a_non_http_override(): void
+    {
+        foreach (['javascript:alert(1)', '/member', 'app.civicdog.com', 'ftp://example.com'] as $bad) {
+            $GLOBALS['stub_options']['cd_lookup_civicdog_app_url'] = $bad;
+            $this->assertSame('https://app.civicdog.com', cd_lookup_civicdog_app_url(), $bad);
+        }
+    }
+
     public function test_script_only_offers_vote_topics_to_voting_representatives(): void
     {
         $this->assertStringContainsString(

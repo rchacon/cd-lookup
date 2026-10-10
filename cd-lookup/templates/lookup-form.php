@@ -24,7 +24,7 @@
     const container = document.currentScript.previousElementSibling;
     const endpoint = <?php echo wp_json_encode( rest_url( 'cd-lookup/v1/representatives' ) ); ?>;
     const nonce    = <?php echo wp_json_encode( wp_create_nonce( 'wp_rest' ) ); ?>;
-    const civicdogUrl = <?php echo wp_json_encode( rtrim( get_option( 'cd_lookup_civicdog_app_url', CD_LOOKUP_CIVICDOG_APP_URL_DEFAULT ), '/' ) ); ?>;
+    const civicdogUrl = <?php echo wp_json_encode( cd_lookup_civicdog_app_url() ); ?>;
     // Admin-curated topics (Settings > CD Lookup). `label` and `group` are
     // pre-escaped for innerHTML; the raw `topic` only ever goes through
     // encodeURIComponent.
